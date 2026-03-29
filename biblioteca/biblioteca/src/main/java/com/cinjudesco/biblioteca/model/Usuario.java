@@ -5,14 +5,21 @@ import lombok.*;
 
 @Entity
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
-
 public class Usuario {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String nombre;
+    private String nombreCompleto;
+    private int edad;
+    private String direccion;
+
+    private String tipoDocumento;
+    private String numeroDocumento;
+
+    private String acudiente;
+    private String telefonoAcudiente;
+
+    private String rol;
 }

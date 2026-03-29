@@ -1,14 +1,15 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
 <meta charset="UTF-8">
-<title>Biblioteca CINJUDESCO</title>
+<title>CINJUDESCO</title>
 
 <style>
 body {
-    font-family: Arial, sans-serif;
-    background: #f4f6f9;
+    font-family: Arial;
     margin: 0;
+    background: #f4f6f9;
 }
 
 header {
@@ -20,122 +21,226 @@ header {
 
 .container {
     padding: 20px;
+    max-width: 900px;
+    margin: auto;
 }
 
-#buscador {
+/* botones menú */
+.menu button {
     width: 100%;
-    padding: 10px;
-    margin-bottom: 20px;
-    border-radius: 8px;
-    border: 1px solid #ccc;
+    margin-bottom: 10px;
+    padding: 15px;
+    font-size: 18px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
 }
+
+.biblio { background: #27ae60; color: white; }
+.registro { background: #2980b9; color: white; }
+.volver { background: #7f8c8d; color: white; }
 
 .card {
     background: white;
     padding: 15px;
     margin-bottom: 15px;
     border-radius: 10px;
-    box-shadow: 0px 2px 5px rgba(0,0,0,0.1);
+}
+
+input {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 10px;
 }
 
 button {
-    padding: 8px 12px;
-    border: none;
+    padding: 10px;
     border-radius: 5px;
+    border: none;
     cursor: pointer;
 }
 
-.prestar {
-    background: #27ae60;
-    color: white;
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
 }
 
-.prestar:hover {
-    background: #219150;
+th, td {
+    border: 1px solid #ccc;
+    padding: 8px;
+}
+
+th {
+    background: #2c3e50;
+    color: white;
 }
 </style>
+
 </head>
 
 <body>
 
 <header>
-    <h1>📚 Biblioteca CINJUDESCO</h1>
+<h1>🏫 CINJUDESCO</h1>
 </header>
 
 <div class="container">
 
-    <!-- 🔍 Buscador -->
-    <input 
-        type="text" 
-        id="buscador" 
-        placeholder="Buscar libro por título..." 
-        onkeyup="buscar()"
-    >
+<!-- 🏠 MENU -->
+<div id="menu" class="menu">
+    <button class="biblio" onclick="mostrarSeccion('biblioteca')">📚 Biblioteca</button>
+    <button class="registro" onclick="mostrarSeccion('registro')">👦 Registro</button>
+</div>
 
-    <!-- 📚 Lista de libros -->
+<!-- 📚 BIBLIOTECA -->
+<div id="biblioteca" style="display:none">
+
+    <button class="volver" onclick="volver()">⬅ Volver</button>
+
+    <h2>📚 Biblioteca</h2>
+
+    <input id="buscador" placeholder="Buscar..." onkeyup="buscar()">
+
     <div id="libros"></div>
 
 </div>
 
+<!-- 👦 REGISTRO -->
+<div id="registro" style="display:none">
+
+    <button class="volver" onclick="volver()">⬅ Volver</button>
+
+    <h2>👦 Registro de Usuarios</h2>
+
+    <div class="card">
+        <input id="nombre" placeholder="Nombre completo">
+        <input id="edad" type="number" placeholder="Edad">
+        <input id="direccion" placeholder="Dirección">
+        <input id="acudiente" placeholder="Acudiente">
+        <input id="telefono" placeholder="Teléfono">
+        <input id="tipoDoc" placeholder="TI o CC">
+        <input id="numeroDoc" placeholder="Número documento">
+
+        <button onclick="registrarUsuario()">Registrar</button>
+        <button onclick="verTabla()">📊 Ver registros</button>
+    </div>
+
+    <div id="tablaUsuarios"></div>
+
+</div>
+
+</div>
+
 <script>
-const API = "http://localhost:8080/libros/google";
+
+const API_LIBROS = "http://localhost:8080/libros/google";
+const API_USUARIOS = "http://localhost:8080/usuarios";
 
 let listaLibros = [];
 
-// 📥 Cargar libros
-async function cargarLibros() {
-    try {
-        const res = await fetch(API);
-        listaLibros = await res.json();
-        mostrarLibros(listaLibros);
-    } catch (error) {
-        console.error("Error cargando libros:", error);
-    }
+// 🧭 navegación
+function mostrarSeccion(seccion) {
+    document.getElementById("menu").style.display = "none";
+    document.getElementById("biblioteca").style.display = "none";
+    document.getElementById("registro").style.display = "none";
+
+    document.getElementById(seccion).style.display = "block";
+
+    if (seccion === "biblioteca") cargarLibros();
 }
 
-// 📚 Mostrar libros
+function volver() {
+    document.getElementById("menu").style.display = "block";
+    document.getElementById("biblioteca").style.display = "none";
+    document.getElementById("registro").style.display = "none";
+}
+
+// 📚 LIBROS
+async function cargarLibros() {
+    const res = await fetch(API_LIBROS);
+    listaLibros = await res.json();
+    mostrarLibros(listaLibros);
+}
+
 function mostrarLibros(libros) {
-    const contenedor = document.getElementById("libros");
-    contenedor.innerHTML = "";
+    const cont = document.getElementById("libros");
+    cont.innerHTML = "";
 
-    if (libros.length === 0) {
-        contenedor.innerHTML = "<p>No hay libros disponibles</p>";
-        return;
-    }
-
-    libros.forEach(libro => {
-        contenedor.innerHTML += `
-            <div class="card">
-                <h3>${libro.titulo}</h3>
-                <p>${libro.resumen}</p>
-                <button class="prestar" onclick="prestar('${libro.titulo}')">
-                    📖 Prestar
-                </button>
-            </div>
-        `;
+    libros.forEach(l => {
+        cont.innerHTML += `
+        <div class="card">
+            <h3>${l.titulo}</h3>
+            <p>${l.resumen}</p>
+        </div>`;
     });
 }
 
-// 🔍 Buscar libros
 function buscar() {
     const texto = document.getElementById("buscador").value.toLowerCase();
 
-    const filtrados = listaLibros.filter(libro =>
-        libro.titulo.toLowerCase().includes(texto)
+    const filtrados = listaLibros.filter(l =>
+        l.titulo.toLowerCase().includes(texto)
     );
 
     mostrarLibros(filtrados);
 }
 
-// 📖 Acción de préstamo (por ahora solo muestra alerta)
-function prestar(titulo) {
-    alert("Has solicitado el libro: " + titulo);
+// 👦 REGISTRAR USUARIO
+async function registrarUsuario() {
 
-    // 🔥 Luego aquí conectamos con backend para guardar préstamo
+    const usuario = {
+        nombreCompleto: nombre.value,
+        edad: parseInt(edad.value),
+        direccion: direccion.value,
+        acudiente: acudiente.value,
+        telefonoAcudiente: telefono.value,
+        tipoDocumento: tipoDoc.value,
+        numeroDocumento: numeroDoc.value,
+        rol: "ESTUDIANTE" // 🔥 clave
+    };
+
+    await fetch(API_USUARIOS, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(usuario)
+    });
+
+    alert("✅ Usuario registrado");
+
+    // limpiar
+    document.querySelectorAll("#registro input").forEach(i => i.value = "");
 }
 
-// 🚀 Inicializar
-cargarLibros();
+// 📊 TABLA
+async function verTabla() {
+
+    const res = await fetch(API_USUARIOS);
+    const datos = await res.json();
+
+    let html = `
+    <table>
+    <tr>
+        <th>Nombre</th>
+        <th>Edad</th>
+        <th>Documento</th>
+        <th>Rol</th>
+    </tr>`;
+
+    datos.forEach(u => {
+        html += `
+        <tr>
+            <td>${u.nombreCompleto}</td>
+            <td>${u.edad}</td>
+            <td>${u.numeroDocumento}</td>
+            <td>${u.rol}</td>
+        </tr>`;
+    });
+
+    html += "</table>";
+
+    document.getElementById("tablaUsuarios").innerHTML = html;
+}
 
 </script>
 
