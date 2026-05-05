@@ -1,15 +1,30 @@
 import { useState, useEffect } from 'react';
 import { Search, X, BookCheck, BookX, MapPin } from 'lucide-react';
-import { TextField, Button, Card, CardContent, Chip, IconButton, Alert } from '@mui/material';
-import { obtenerLibros, prestarLibro, devolverLibro, type Libro } from '../services/api';
+import {
+  TextField,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  IconButton,
+  Alert
+} from '@mui/material';
+import { obtenerLibros, type Libro } from '../services/api';
 import { toast } from 'sonner';
 
 export function SearchSection() {
+
   const [busqueda, setBusqueda] = useState('');
   const [todosLosLibros, setTodosLosLibros] = useState<Libro[]>([]);
   const [resultados, setResultados] = useState<Libro[]>([]);
   const [buscando, setBuscando] = useState(false);
   const [mostrarResultados, setMostrarResultados] = useState(false);
+
+  // 🔥 NUEVO: estados del modal
+  const [modalPrestamo, setModalPrestamo] = useState(false);
+  const [libroSeleccionado, setLibroSeleccionado] = useState<Libro | null>(null);
+  const [nombrePersona, setNombrePersona] = useState('');
+  const [documentoPersona, setDocumentoPersona] = useState('');
 
   useEffect(() => {
     cargarLibros();
@@ -24,13 +39,16 @@ export function SearchSection() {
     }
   };
 
+  // 🔍 BUSCAR
   const realizarBusqueda = () => {
+
     if (!busqueda.trim()) {
       toast.error('Por favor ingresa un término de búsqueda');
       return;
     }
 
     setBuscando(true);
+
     const termino = busqueda.toLowerCase().trim();
 
     const librosEncontrados = todosLosLibros.filter(libro =>
@@ -45,16 +63,14 @@ export function SearchSection() {
     setBuscando(false);
 
     if (librosEncontrados.length === 0) {
-      toast.info('No se encontraron libros con ese criterio');
+      toast.info('No se encontraron libros');
     } else {
       toast.success(`Se encontraron ${librosEncontrados.length} libro(s)`);
     }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      realizarBusqueda();
-    }
+    if (e.key === 'Enter') realizarBusqueda();
   };
 
   const cerrarResultados = () => {
@@ -63,178 +79,201 @@ export function SearchSection() {
     setResultados([]);
   };
 
-  const handlePrestar = async (isbn: string, titulo: string) => {
+  // 📖 ABRIR MODAL
+  const abrirModalPrestamo = (libro: Libro) => {
+    setLibroSeleccionado(libro);
+    setModalPrestamo(true);
+  };
+
+  // ✅ CONFIRMAR PRÉSTAMO
+  const confirmarPrestamo = async () => {
+
+    if (!libroSeleccionado) return;
+
     try {
-      await prestarLibro(isbn);
-      toast.success(`"${titulo}" prestado exitosamente`);
+
+      await fetch('http://localhost:8080/prestamos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          isbnLibro: libroSeleccionado.isbn,
+          nombrePersona,
+          documentoPersona
+        })
+      });
+
+      toast.success(`"${libroSeleccionado.titulo}" prestado`);
+
+      setModalPrestamo(false);
+      setNombrePersona('');
+      setDocumentoPersona('');
+
       cargarLibros();
       realizarBusqueda();
+
     } catch (error) {
-      toast.error('Error al prestar el libro');
+      toast.error('Error al prestar');
     }
   };
 
+  // 🔁 DEVOLVER
   const handleDevolver = async (isbn: string, titulo: string) => {
+
     try {
-      await devolverLibro(isbn);
-      toast.success(`"${titulo}" devuelto exitosamente`);
+
+      await fetch(`http://localhost:8080/prestamos/devolver/${isbn}`, {
+        method: 'PUT'
+      });
+
+      toast.success(`"${titulo}" devuelto`);
+
       cargarLibros();
       realizarBusqueda();
+
     } catch (error) {
-      toast.error('Error al devolver el libro');
+      toast.error('Error al devolver');
     }
   };
 
   return (
     <>
+      {/* 🔍 BUSCADOR */}
       <section className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-16">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-4xl font-bold mb-4">Busca en nuestro catálogo</h2>
-          <p className="text-lg mb-8 text-blue-100">Más de {todosLosLibros.length} libros disponibles para ti</p>
 
-          <div className="flex flex-col sm:flex-row gap-3 max-w-2xl mx-auto">
+          <p className="mb-8">
+            Más de {todosLosLibros.length} libros disponibles
+          </p>
+
+          <div className="flex gap-3">
             <TextField
               fullWidth
-              placeholder="Buscar por título, autor, ISBN..."
-              variant="outlined"
+              placeholder="Buscar..."
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
               onKeyPress={handleKeyPress}
-              sx={{
-                backgroundColor: 'white',
-                borderRadius: 1,
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': {
-                    borderColor: 'transparent',
-                  },
-                },
-              }}
+              sx={{ backgroundColor: 'white', borderRadius: 1 }}
             />
-            <Button
-              variant="contained"
-              size="large"
-              onClick={realizarBusqueda}
-              disabled={buscando}
-              sx={{
-                backgroundColor: 'white',
-                color: '#2563eb',
-                '&:hover': {
-                  backgroundColor: '#f3f4f6',
-                },
-                minWidth: '120px',
-              }}
-              startIcon={<Search className="w-5 h-5" />}
-            >
+
+            <Button onClick={realizarBusqueda} variant="contained">
               Buscar
             </Button>
           </div>
         </div>
       </section>
 
-      {/* Resultados de búsqueda */}
+      {/* 📚 RESULTADOS */}
       {mostrarResultados && (
-        <section className="py-8 bg-gray-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-2xl font-bold">
-                Resultados de búsqueda: "{busqueda}"
-              </h3>
-              <IconButton onClick={cerrarResultados} size="small">
-                <X className="w-5 h-5" />
-              </IconButton>
+        <section className="p-6">
+
+          <div className="flex justify-between mb-4">
+            <h3>Resultados: "{busqueda}"</h3>
+
+            <IconButton onClick={cerrarResultados}>
+              <X />
+            </IconButton>
+          </div>
+
+          {resultados.length === 0 ? (
+            <Alert severity="info">
+              No se encontraron libros
+            </Alert>
+          ) : (
+
+            <div className="grid md:grid-cols-3 gap-4">
+
+              {resultados.map(libro => (
+
+                <Card key={libro.isbn}>
+                  <CardContent>
+
+                    <h3>{libro.titulo}</h3>
+
+                    <Chip
+                      label={libro.disponible ? 'Disponible' : 'Prestado'}
+                      color={libro.disponible ? 'success' : 'error'}
+                    />
+
+                    <p><b>Autor:</b> {libro.autor}</p>
+                    <p><b>ISBN:</b> {libro.isbn}</p>
+
+                    {libro.ubicacion && (
+                      <p><MapPin size={14}/> {libro.ubicacion}</p>
+                    )}
+
+                    <div className="mt-3">
+
+                      {libro.disponible ? (
+                        <Button
+                          fullWidth
+                          onClick={() => abrirModalPrestamo(libro)}
+                        >
+                          Prestar
+                        </Button>
+                      ) : (
+                        <Button
+                          fullWidth
+                          color="success"
+                          onClick={() => handleDevolver(libro.isbn, libro.titulo)}
+                        >
+                          Devolver
+                        </Button>
+                      )}
+
+                    </div>
+
+                  </CardContent>
+                </Card>
+
+              ))}
+
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* 🪟 MODAL */}
+      {modalPrestamo && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center">
+
+          <div className="bg-white p-6 rounded-xl w-96">
+
+            <h3 className="text-xl font-bold mb-4">
+              Prestar: {libroSeleccionado?.titulo}
+            </h3>
+
+            <TextField
+              fullWidth
+              label="Nombre (opcional)"
+              value={nombrePersona}
+              onChange={(e) => setNombrePersona(e.target.value)}
+              className="mb-3"
+            />
+
+            <TextField
+              fullWidth
+              label="Documento (opcional)"
+              value={documentoPersona}
+              onChange={(e) => setDocumentoPersona(e.target.value)}
+              className="mb-3"
+            />
+
+            <div className="flex justify-end gap-2 mt-4">
+
+              <Button onClick={() => setModalPrestamo(false)}>
+                Cancelar
+              </Button>
+
+              <Button variant="contained" onClick={confirmarPrestamo}>
+                Confirmar
+              </Button>
+
             </div>
 
-            {resultados.length === 0 ? (
-              <Alert severity="info" className="max-w-2xl mx-auto">
-                <div>
-                  <strong>No se encontraron resultados</strong>
-                  <p className="mt-2">
-                    No hay libros que coincidan con "{busqueda}".
-                    Intenta buscar por:
-                  </p>
-                  <ul className="list-disc ml-5 mt-2">
-                    <li>Título del libro</li>
-                    <li>Nombre del autor</li>
-                    <li>Código ISBN</li>
-                    <li>Categoría</li>
-                  </ul>
-                </div>
-              </Alert>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {resultados.map((libro) => (
-                  <Card key={libro.isbn} className="hover:shadow-lg transition-shadow">
-                    <CardContent className="space-y-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <h4 className="font-bold text-lg line-clamp-2">{libro.titulo}</h4>
-                        <Chip
-                          label={libro.disponible ? 'Disponible' : 'Prestado'}
-                          size="small"
-                          sx={{
-                            backgroundColor: libro.disponible ? '#10b981' : '#ef4444',
-                            color: 'white',
-                            fontWeight: 600,
-                          }}
-                        />
-                      </div>
-
-                      <div className="space-y-2 text-sm">
-                        <p className="text-gray-700">
-                          <strong>Autor:</strong> {libro.autor}
-                        </p>
-                        <p className="text-gray-700">
-                          <strong>ISBN:</strong> {libro.isbn}
-                        </p>
-                        {libro.categoria && (
-                          <p className="text-gray-700">
-                            <strong>Categoría:</strong> {libro.categoria}
-                          </p>
-                        )}
-                        {libro.ubicacion && (
-                          <p className="text-gray-700 flex items-center gap-1">
-                            <MapPin className="w-4 h-4" />
-                            {libro.ubicacion}
-                          </p>
-                        )}
-                        {libro.resumen && (
-                          <p className="text-gray-600 text-xs line-clamp-3 mt-2">
-                            {libro.resumen}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="pt-3 border-t">
-                        {libro.disponible ? (
-                          <Button
-                            fullWidth
-                            variant="contained"
-                            size="small"
-                            color="primary"
-                            startIcon={<BookX className="w-4 h-4" />}
-                            onClick={() => handlePrestar(libro.isbn, libro.titulo)}
-                          >
-                            Prestar libro
-                          </Button>
-                        ) : (
-                          <Button
-                            fullWidth
-                            variant="contained"
-                            size="small"
-                            color="success"
-                            startIcon={<BookCheck className="w-4 h-4" />}
-                            onClick={() => handleDevolver(libro.isbn, libro.titulo)}
-                          >
-                            Devolver libro
-                          </Button>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
           </div>
-        </section>
+
+        </div>
       )}
     </>
   );

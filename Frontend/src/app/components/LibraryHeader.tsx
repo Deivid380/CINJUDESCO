@@ -9,8 +9,8 @@ export function LibraryHeader() {
           <div className="flex items-center gap-3">
             <BookOpen className="w-8 h-8 text-blue-600" />
             <div>
-              <h1 className="text-xl font-semibold text-gray-900">Biblioteca CINJUDESCO</h1>
-              <p className="text-xs text-gray-500">Fundación centrada en la cultura</p>
+              <h1 className="text-xl font-semibold text-gray-900">Biblioteca Comunuraria Manuela Beltran</h1>
+              <p className="text-xs text-gray-500">Fundación centrada en la cultura y el Conocimineto</p>
             </div>
           </div>
 
