@@ -30,7 +30,7 @@ export function BackendStatus() {
             <Wifi className="w-5 h-5" />
             <div>
               <AlertTitle>Conectado al backend</AlertTitle>
-              Spring Boot funcionando en http://localhost:8080
+              Spring Boot funcionando en https://cinjudesco.onrender.com
             </div>
           </div>
         </div>
@@ -48,7 +48,7 @@ export function BackendStatus() {
             Backend no disponible. Mostrando datos de ejemplo. Para conectar al backend:
             <ol className="list-decimal ml-5 mt-2 text-sm">
               <li>Inicia tu aplicación Spring Boot</li>
-              <li>Verifica que esté en http://localhost:8080</li>
+              <li>Verifica que esté en https://cinjudesco.onrender.com</li>
               <li>Asegúrate de tener @CrossOrigin configurado</li>
             </ol>
           </div>
