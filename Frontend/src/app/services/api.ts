@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Configurar la URL base de tu API Spring Boot
-const API_BASE_URL = 'http://localhost:8080';
+const API_BASE_URL = 'https://cinjudesco.onrender.com';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
