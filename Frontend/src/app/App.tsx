@@ -68,7 +68,7 @@ export default function App() {
         {renderContenido()}
       </main>
 
-      <LibraryFooter />
+      <LibraryFooter seccionActiva={seccionActiva} />
     </div>
   );
 }

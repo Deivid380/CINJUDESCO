@@ -1,5 +1,6 @@
-import { BookOpen, Search, User, Menu } from 'lucide-react';
-import { IconButton } from '@mui/material';
+import { useState } from 'react';
+import { BookOpen, Search, User, Menu, X } from 'lucide-react';
+import { IconButton, Drawer, List, ListItem, ListItemButton, ListItemText } from '@mui/material';
 
 interface LibraryHeaderProps {
   seccionActiva: 'biblioteca' | 'clases' | 'registro';
@@ -8,6 +9,18 @@ interface LibraryHeaderProps {
 
 export function LibraryHeader({ seccionActiva, onSeccionChange }: LibraryHeaderProps) {
   const esSINJUDESCO = seccionActiva === 'clases' || seccionActiva === 'registro';
+  const [menuAbierto, setMenuAbierto] = useState(false);
+
+  const menuOpciones = [
+    { id: 'biblioteca' as const, label: 'Catálogo' },
+    { id: 'clases' as const, label: 'Clases' },
+    { id: 'registro' as const, label: 'Registro' },
+  ];
+
+  const handleMenuClick = (seccion: 'biblioteca' | 'clases' | 'registro') => {
+    onSeccionChange(seccion);
+    setMenuAbierto(false);
+  };
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">
@@ -23,6 +36,7 @@ export function LibraryHeader({ seccionActiva, onSeccionChange }: LibraryHeaderP
             </div>
           </div>
 
+          {/* Menú desktop */}
           <nav className="hidden md:flex items-center gap-6">
             <button
               onClick={() => onSeccionChange('biblioteca')}
@@ -51,12 +65,40 @@ export function LibraryHeader({ seccionActiva, onSeccionChange }: LibraryHeaderP
             <IconButton>
               <User className="w-5 h-5" />
             </IconButton>
-            <IconButton className="md:hidden">
+            <IconButton className="md:hidden" onClick={() => setMenuAbierto(true)}>
               <Menu className="w-5 h-5" />
             </IconButton>
           </div>
         </div>
       </div>
+
+      {/* Menú móvil */}
+      <Drawer
+        anchor="right"
+        open={menuAbierto}
+        onClose={() => setMenuAbierto(false)}
+      >
+        <div className="w-64">
+          <div className="flex items-center justify-between p-4 border-b">
+            <h2 className="font-semibold text-lg">Menú</h2>
+            <IconButton onClick={() => setMenuAbierto(false)}>
+              <X className="w-5 h-5" />
+            </IconButton>
+          </div>
+          <List>
+            {menuOpciones.map((opcion) => (
+              <ListItem key={opcion.id} disablePadding>
+                <ListItemButton
+                  selected={seccionActiva === opcion.id}
+                  onClick={() => handleMenuClick(opcion.id)}
+                >
+                  <ListItemText primary={opcion.label} />
+                </ListItemButton>
+              </ListItem>
+            ))}
+          </List>
+        </div>
+      </Drawer>
     </header>
   );
 }
