@@ -1,0 +1,14 @@
+com\cinjudesco\biblioteca\model\Usuario.class
+com\cinjudesco\biblioteca\controller\PrestamoController.class
+com\cinjudesco\biblioteca\repository\PrestamoRepository.class
+com\cinjudesco\biblioteca\repository\UsuarioRepository.class
+com\cinjudesco\biblioteca\model\Nino.class
+com\cinjudesco\biblioteca\model\Prestamo.class
+com\cinjudesco\biblioteca\controller\UsuarioController.class
+com\cinjudesco\biblioteca\controller\NinoController.class
+com\cinjudesco\biblioteca\model\Libro.class
+com\cinjudesco\biblioteca\service\GoogleSheetsService.class
+com\cinjudesco\biblioteca\repository\LibroRepository.class
+com\cinjudesco\biblioteca\controller\LibroController.class
+com\cinjudesco\biblioteca\repository\NinoRepository.class
+com\cinjudesco\biblioteca\BibliotecaApplication.class
