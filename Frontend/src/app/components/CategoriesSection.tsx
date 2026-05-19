@@ -6,6 +6,7 @@ import { obtenerLibros, type Libro } from '../services/api';
 
 // 🎨 iconos por categoría
 const iconos: any = {
+  Autoayuda: BookOpen,
   Ciencias: Brain,
   Historia: Globe,
   Matemáticas: Brain,
@@ -23,6 +24,7 @@ const iconos: any = {
 
 // 🎨 colores
 const colores: any = {
+  Autoayuda: 'bg-rose-100 text-rose-600',
   Ciencias: 'bg-blue-100 text-blue-600',
   Historia: 'bg-amber-100 text-amber-600',
   Matemáticas: 'bg-green-100 text-green-600',
@@ -39,6 +41,7 @@ const colores: any = {
 };
 
 const categoriasBase = [
+  'Autoayuda',
   'Ciencias',
   'Historia',
   'Matemáticas',

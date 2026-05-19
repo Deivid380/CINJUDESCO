@@ -1,9 +1,27 @@
 import { useState, useEffect } from 'react';
-import { Button, TextField, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Chip } from '@mui/material';
+import { Button, TextField, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Chip, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
 import { Plus, Trash2, BookCheck, BookX, Edit } from 'lucide-react';
 import { obtenerLibros, crearLibro, eliminarLibro, prestarLibro, devolverLibro, type Libro } from '../services/api';
 import { toast } from 'sonner';
 import { BackendStatus } from './BackendStatus';
+
+// Categorías disponibles (las mismas de CategoriesSection)
+const CATEGORIAS_DISPONIBLES = [
+  'Autoayuda',
+  'Ciencias',
+  'Historia',
+  'Matemáticas',
+  'Lenguaje',
+  'Filosofía',
+  'Literatura',
+  'Novelas',
+  'Cuentos',
+  'Danza',
+  'Musica',
+  'Artes',
+  'Historia Local',
+  'Infantil'
+];
 
 export function AdminPanel() {
   const [libros, setLibros] = useState<Libro[]>([]);
@@ -253,12 +271,23 @@ export function AdminPanel() {
                 value={nuevoLibro.autor}
                 onChange={(e) => setNuevoLibro({ ...nuevoLibro, autor: e.target.value })}
               />
-              <TextField
-                fullWidth
-                label="Categoría"
-                value={nuevoLibro.categoria}
-                onChange={(e) => setNuevoLibro({ ...nuevoLibro, categoria: e.target.value })}
-              />
+              <FormControl fullWidth>
+                <InputLabel>Categoría</InputLabel>
+                <Select
+                  value={nuevoLibro.categoria || ''}
+                  label="Categoría"
+                  onChange={(e) => setNuevoLibro({ ...nuevoLibro, categoria: e.target.value })}
+                >
+                  <MenuItem value="">
+                    <em>Seleccionar categoría</em>
+                  </MenuItem>
+                  {CATEGORIAS_DISPONIBLES.map((cat) => (
+                    <MenuItem key={cat} value={cat}>
+                      {cat}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
               <TextField
                 fullWidth
                 label="Resumen"
