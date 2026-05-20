@@ -2,9 +2,9 @@ package com.cinjudesco.biblioteca.controller;
 
 import com.cinjudesco.biblioteca.model.Nino;
 import com.cinjudesco.biblioteca.repository.NinoRepository;
+
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -18,24 +18,28 @@ public class NinoController {
         this.repo = repo;
     }
 
-    // 📥 Registrar niño
-    @PostMapping
-    public Nino guardar(@RequestBody Nino nino) {
+    // =========================
+    // LISTAR
+    // =========================
 
-        if (nino.getFechaRegistro() == null) {
-            nino.setFechaRegistro(LocalDate.now());
-        }
-
-        return repo.save(nino);
-    }
-
-    // 📋 Listar niños
     @GetMapping
     public List<Nino> listar() {
         return repo.findAll();
     }
 
-    // ❌ Eliminar niño
+    // =========================
+    // REGISTRAR
+    // =========================
+
+    @PostMapping
+    public Nino guardar(@RequestBody Nino nino) {
+        return repo.save(nino);
+    }
+
+    // =========================
+    // ELIMINAR
+    // =========================
+
     @DeleteMapping("/{id}")
     public void eliminar(@PathVariable Long id) {
         repo.deleteById(id);

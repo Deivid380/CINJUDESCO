@@ -3,7 +3,7 @@ package com.cinjudesco.biblioteca.model;
 import jakarta.persistence.*;
 import lombok.Data;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Data
@@ -14,6 +14,7 @@ public class Nino {
     private Long id;
 
     private String nombre;
+
     private String apellido;
 
     private int edad;
@@ -24,9 +25,10 @@ public class Nino {
 
     private String acudiente;
 
-    private LocalDate fechaRegistro;
+    private LocalDateTime fechaRegistro;
 
-    private String tipoDocumento;
-
-    private String numeroDocumento;
+    @PrePersist
+    public void prePersist() {
+        this.fechaRegistro = LocalDateTime.now();
+    }
 }
