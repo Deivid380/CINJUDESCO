@@ -1,4 +1,4 @@
-package main.java.com.cinjudesco.biblioteca.controller;
+package com.cinjudesco.biblioteca.controller;
 
 import com.cinjudesco.biblioteca.model.Asistencia;
 import com.cinjudesco.biblioteca.repository.AsistenciaRepository;

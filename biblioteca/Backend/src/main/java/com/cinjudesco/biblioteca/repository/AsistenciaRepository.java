@@ -1,4 +1,4 @@
-package main.java.com.cinjudesco.biblioteca.repository;
+package com.cinjudesco.biblioteca.repository;
 
 import com.cinjudesco.biblioteca.model.Asistencia;
 import org.springframework.data.jpa.repository.JpaRepository;

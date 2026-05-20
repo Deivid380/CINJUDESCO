@@ -1,4 +1,4 @@
-package main.java.com.cinjudesco.biblioteca.model;
+package com.cinjudesco.biblioteca.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
