@@ -59,7 +59,7 @@ export function RegistroSection() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h2 className="text-3xl font-bold mb-2">Registro de Estudiantes</h2>
-            <p className="text-gray-600">Gestión de niños registrados en la fundación SINJUDESCO</p>
+            <p className="text-gray-600">Gestión de niños registrados en la fundación CINJUDESCO</p>
           </div>
           <Button
             variant="contained"

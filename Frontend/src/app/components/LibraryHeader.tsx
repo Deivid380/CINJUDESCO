@@ -8,7 +8,7 @@ interface LibraryHeaderProps {
 }
 
 export function LibraryHeader({ seccionActiva, onSeccionChange }: LibraryHeaderProps) {
-  const esSINJUDESCO = seccionActiva === 'clases' || seccionActiva === 'registro';
+  const esCINJUDESCO = seccionActiva === 'clases' || seccionActiva === 'registro';
   const [menuAbierto, setMenuAbierto] = useState(false);
 
   const menuOpciones = [
@@ -30,7 +30,7 @@ export function LibraryHeader({ seccionActiva, onSeccionChange }: LibraryHeaderP
             <BookOpen className="w-8 h-8 text-blue-600" />
             <div>
               <h1 className="text-xl font-semibold text-gray-900">
-                {esSINJUDESCO ? 'SINJUDESCO' : 'Biblioteca Comunitaria Manuela Beltrán'}
+                {esCINJUDESCO ? 'CINJUDESCO' : 'Biblioteca Comunitaria Manuela Beltrán'}
               </h1>
               <p className="text-xs text-gray-500">Fundación centrada en la cultura y el conocimiento</p>
             </div>
