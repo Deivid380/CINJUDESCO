@@ -8,6 +8,7 @@ import { Users, CheckCircle, Calendar, Search, X, MessageSquare, RefreshCw } fro
 import { toast } from 'sonner';
 
 const NINOS_API = 'https://cinjudesco.onrender.com/ninos';
+const ASISTENCIAS_API = 'https://cinjudesco.onrender.com/asistencias';
 
 interface Nino {
   id: number;
@@ -17,10 +18,11 @@ interface Nino {
 }
 
 interface Asistencia {
-  id: string;
+  id: number;
   fecha: string;
   clase: string;
   estudiantes: Nino[];
+  cantidadAsistentes: number;
   comentario: string;
 }
 
@@ -30,7 +32,7 @@ const CLASES_DISPONIBLES = [
   'Rap jóvenes',
   'Danza niños',
   'Danza jóvenes',
-  'Breakdance',
+  'Hip Hop',
   'Musica',
 ];
 
@@ -39,6 +41,7 @@ export function ClasesSection() {
   const [asistencias, setAsistencias] = useState<Asistencia[]>([]);
   const [ninos, setNinos] = useState<Nino[]>([]);
   const [loadingNinos, setLoadingNinos] = useState(false);
+  const [loadingHistorial, setLoadingHistorial] = useState(false);
   const [busqueda, setBusqueda] = useState('');
   const [seleccionados, setSeleccionados] = useState<number[]>([]);
   const [comentario, setComentario] = useState('');
@@ -58,8 +61,23 @@ export function ClasesSection() {
     }
   };
 
+  const cargarHistorial = async () => {
+    setLoadingHistorial(true);
+    try {
+      const res = await fetch(ASISTENCIAS_API);
+      if (!res.ok) throw new Error();
+      const data: Asistencia[] = await res.json();
+      setAsistencias(data.reverse());
+    } catch {
+      toast.error('No se pudo cargar el historial de asistencias.');
+    } finally {
+      setLoadingHistorial(false);
+    }
+  };
+
   useEffect(() => {
     cargarNinos();
+    cargarHistorial();
   }, []);
 
   const ninosFiltrados = useMemo(() => {
@@ -98,21 +116,27 @@ export function ClasesSection() {
     setGuardando(true);
     try {
       const estudiantesPresentes = ninos.filter((n) => seleccionados.includes(n.id));
-      const nuevaAsistencia: Asistencia = {
-        id: Date.now().toString(),
-        fecha: new Date().toLocaleDateString('es-ES', {
-          weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-        }),
+      const payload = {
         clase: claseSeleccionada,
-        estudiantes: estudiantesPresentes,
+        estudiantes: estudiantesPresentes.map(({ id, nombre, apellido, edad }) => ({ id, nombre, apellido, edad })),
         comentario,
       };
 
-      setAsistencias((prev) => [nuevaAsistencia, ...prev]);
+      const res = await fetch(ASISTENCIAS_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error();
+      const guardada: Asistencia = await res.json();
+      setAsistencias((prev) => [guardada, ...prev]);
       toast.success(`Asistencia registrada: ${estudiantesPresentes.length} estudiante(s) en ${claseSeleccionada}`);
       setSeleccionados([]);
       setBusqueda('');
       setComentario('');
+    } catch {
+      toast.error('No se pudo guardar la asistencia. Verifica la conexión con el servidor.');
     } finally {
       setGuardando(false);
     }
@@ -308,11 +332,18 @@ export function ClasesSection() {
 
         {/* Historial de asistencias */}
         <div className="bg-white rounded-lg shadow">
-          <div className="p-6 border-b">
+          <div className="p-6 border-b flex items-center justify-between">
             <h3 className="text-xl font-semibold">Historial de Asistencias</h3>
+            <IconButton onClick={cargarHistorial} disabled={loadingHistorial} title="Recargar historial" size="small">
+              <RefreshCw className={`w-4 h-4 ${loadingHistorial ? 'animate-spin' : ''}`} />
+            </IconButton>
           </div>
 
-          {asistencias.length === 0 ? (
+          {loadingHistorial ? (
+            <div className="flex justify-center py-12">
+              <CircularProgress />
+            </div>
+          ) : asistencias.length === 0 ? (
             <div className="p-12 text-center text-gray-500">
               <Users className="w-16 h-16 mx-auto mb-4 text-gray-300" />
               <p>No hay asistencias registradas aún</p>
@@ -332,7 +363,13 @@ export function ClasesSection() {
                 <TableBody>
                   {asistencias.map((a) => (
                     <TableRow key={a.id}>
-                      <TableCell className="text-sm capitalize">{a.fecha}</TableCell>
+                      <TableCell className="text-sm capitalize">
+                        {a.fecha
+                          ? new Date(a.fecha).toLocaleDateString('es-ES', {
+                              weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+                            })
+                          : '—'}
+                      </TableCell>
                       <TableCell>
                         <Chip label={a.clase} size="small" color="primary" variant="outlined" />
                       </TableCell>
