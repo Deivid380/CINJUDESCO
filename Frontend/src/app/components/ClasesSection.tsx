@@ -1,12 +1,27 @@
-import { useState, useEffect } from 'react';
-import { Button, Card, CardContent, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
-import { Users, CheckCircle, Calendar } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import {
+  Button, Card, CardContent, Chip, Table, TableBody, TableCell,
+  TableContainer, TableHead, TableRow, Paper, TextField,
+  CircularProgress, IconButton, Checkbox
+} from '@mui/material';
+import { Users, CheckCircle, Calendar, Search, X, MessageSquare, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
+const NINOS_API = 'https://cinjudesco.onrender.com/ninos';
+
+interface Nino {
+  id: number;
+  nombre: string;
+  apellido: string;
+  edad: number;
+}
+
 interface Asistencia {
+  id: string;
   fecha: string;
   clase: string;
-  estudiantes: string[];
+  estudiantes: Nino[];
+  comentario: string;
 }
 
 const CLASES_DISPONIBLES = [
@@ -15,28 +30,92 @@ const CLASES_DISPONIBLES = [
   'Rap jóvenes',
   'Danza niños',
   'Danza jóvenes',
-  'Hip Hop',
-  'Musica'
+  'Breakdance',
+  'Musica',
 ];
 
 export function ClasesSection() {
   const [claseSeleccionada, setClaseSeleccionada] = useState<string>('');
   const [asistencias, setAsistencias] = useState<Asistencia[]>([]);
+  const [ninos, setNinos] = useState<Nino[]>([]);
+  const [loadingNinos, setLoadingNinos] = useState(false);
+  const [busqueda, setBusqueda] = useState('');
+  const [seleccionados, setSeleccionados] = useState<number[]>([]);
+  const [comentario, setComentario] = useState('');
+  const [guardando, setGuardando] = useState(false);
 
-  const registrarAsistencia = () => {
+  const cargarNinos = async () => {
+    setLoadingNinos(true);
+    try {
+      const res = await fetch(NINOS_API);
+      if (!res.ok) throw new Error();
+      const data: Nino[] = await res.json();
+      setNinos(data);
+    } catch {
+      toast.error('No se pudo cargar la lista de estudiantes.');
+    } finally {
+      setLoadingNinos(false);
+    }
+  };
+
+  useEffect(() => {
+    cargarNinos();
+  }, []);
+
+  const ninosFiltrados = useMemo(() => {
+    const q = busqueda.toLowerCase().trim();
+    if (!q) return ninos;
+    return ninos.filter(
+      (n) =>
+        n.nombre.toLowerCase().includes(q) ||
+        n.apellido.toLowerCase().includes(q)
+    );
+  }, [ninos, busqueda]);
+
+  const toggleSeleccion = (id: number) => {
+    setSeleccionados((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleSeleccionarClase = (clase: string) => {
+    setClaseSeleccionada(clase);
+    setSeleccionados([]);
+    setBusqueda('');
+    setComentario('');
+  };
+
+  const handleRegistrarAsistencia = async () => {
     if (!claseSeleccionada) {
       toast.error('Selecciona una clase primero');
       return;
     }
+    if (seleccionados.length === 0) {
+      toast.error('Selecciona al menos un estudiante');
+      return;
+    }
 
-    const nuevaAsistencia: Asistencia = {
-      fecha: new Date().toLocaleDateString('es-ES'),
-      clase: claseSeleccionada,
-      estudiantes: [] // Se llenarían con los niños que asistieron
-    };
+    setGuardando(true);
+    try {
+      const estudiantesPresentes = ninos.filter((n) => seleccionados.includes(n.id));
+      const nuevaAsistencia: Asistencia = {
+        id: Date.now().toString(),
+        fecha: new Date().toLocaleDateString('es-ES', {
+          weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+        }),
+        clase: claseSeleccionada,
+        estudiantes: estudiantesPresentes,
+        comentario,
+      };
 
-    setAsistencias([...asistencias, nuevaAsistencia]);
-    toast.success(`Asistencia registrada para ${claseSeleccionada}`);
+      setAsistencias((prev) => [nuevaAsistencia, ...prev]);
+      toast.success(`Asistencia registrada: ${estudiantesPresentes.length} estudiante(s) en ${claseSeleccionada}`);
+      setSeleccionados([]);
+      setBusqueda('');
+      setComentario('');
+    } finally {
+      setGuardando(false);
+    }
   };
 
   return (
@@ -48,7 +127,7 @@ export function ClasesSection() {
         </div>
 
         {/* Tarjetas de clases */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-8">
           {CLASES_DISPONIBLES.map((clase) => (
             <Card
               key={clase}
@@ -57,47 +136,172 @@ export function ClasesSection() {
                   ? 'ring-2 ring-blue-500 shadow-lg'
                   : 'hover:shadow-md'
               }`}
-              onClick={() => setClaseSeleccionada(clase)}
+              onClick={() => handleSeleccionarClase(clase)}
             >
-              <CardContent className="text-center">
-                <Users className="w-12 h-12 mx-auto mb-3 text-blue-600" />
-                <h3 className="font-semibold text-lg mb-2">{clase}</h3>
+              <CardContent className="text-center py-4 px-2">
+                <Users className={`w-8 h-8 mx-auto mb-2 ${claseSeleccionada === clase ? 'text-blue-600' : 'text-gray-400'}`} />
+                <h3 className="font-semibold text-sm leading-tight">{clase}</h3>
                 {claseSeleccionada === clase && (
-                  <Chip
-                    label="Seleccionada"
-                    size="small"
-                    color="primary"
-                  />
+                  <Chip label="Activa" size="small" color="primary" className="mt-2" />
                 )}
               </CardContent>
             </Card>
           ))}
         </div>
 
-        {/* Botón de registro */}
+        {/* Panel de asistencia */}
         {claseSeleccionada && (
-          <div className="mb-8 bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
+          <div className="mb-8 bg-white rounded-lg shadow">
+            {/* Header del panel */}
+            <div className="p-6 border-b flex items-center justify-between">
               <div>
-                <h3 className="text-xl font-semibold mb-2">Clase: {claseSeleccionada}</h3>
-                <p className="text-gray-600 flex items-center gap-2">
+                <h3 className="text-xl font-semibold">{claseSeleccionada}</h3>
+                <p className="text-gray-500 flex items-center gap-2 text-sm mt-1">
                   <Calendar className="w-4 h-4" />
                   {new Date().toLocaleDateString('es-ES', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
+                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
                   })}
                 </p>
               </div>
-              <Button
-                variant="contained"
-                size="large"
-                startIcon={<CheckCircle className="w-5 h-5" />}
-                onClick={registrarAsistencia}
-              >
-                Registrar Asistencia
-              </Button>
+              <div className="flex items-center gap-3">
+                {seleccionados.length > 0 && (
+                  <Chip
+                    label={`${seleccionados.length} seleccionado(s)`}
+                    color="primary"
+                    variant="outlined"
+                  />
+                )}
+                <IconButton onClick={cargarNinos} disabled={loadingNinos} title="Recargar estudiantes" size="small">
+                  <RefreshCw className={`w-4 h-4 ${loadingNinos ? 'animate-spin' : ''}`} />
+                </IconButton>
+              </div>
+            </div>
+
+            <div className="p-6">
+              {/* Buscador */}
+              <div className="relative mb-4">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <TextField
+                  fullWidth
+                  size="small"
+                  placeholder="Buscar estudiante por nombre o apellido..."
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                  InputProps={{
+                    startAdornment: <span className="w-5" />,
+                    endAdornment: busqueda ? (
+                      <IconButton size="small" onClick={() => setBusqueda('')}>
+                        <X className="w-4 h-4" />
+                      </IconButton>
+                    ) : null,
+                  }}
+                  sx={{ '& .MuiInputBase-root': { paddingLeft: '2.25rem' } }}
+                />
+              </div>
+
+              {/* Lista de estudiantes */}
+              {loadingNinos ? (
+                <div className="flex justify-center py-8">
+                  <CircularProgress size={32} />
+                </div>
+              ) : ninosFiltrados.length === 0 ? (
+                <div className="text-center py-8 text-gray-400">
+                  <Users className="w-10 h-10 mx-auto mb-2" />
+                  <p className="text-sm">
+                    {busqueda ? `Sin resultados para "${busqueda}"` : 'No hay estudiantes registrados'}
+                  </p>
+                </div>
+              ) : (
+                <div className="border rounded-lg overflow-hidden mb-5">
+                  <div className="max-h-64 overflow-y-auto divide-y">
+                    {ninosFiltrados.map((nino) => {
+                      const seleccionado = seleccionados.includes(nino.id);
+                      return (
+                        <div
+                          key={nino.id}
+                          className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors ${
+                            seleccionado ? 'bg-blue-50' : 'hover:bg-gray-50'
+                          }`}
+                          onClick={() => toggleSeleccion(nino.id)}
+                        >
+                          <Checkbox
+                            checked={seleccionado}
+                            size="small"
+                            color="primary"
+                            onChange={() => toggleSeleccion(nino.id)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm">
+                              {nino.nombre} {nino.apellido}
+                            </p>
+                            {nino.edad > 0 && (
+                              <p className="text-xs text-gray-400">{nino.edad} años</p>
+                            )}
+                          </div>
+                          {seleccionado && (
+                            <CheckCircle className="w-4 h-4 text-blue-500 shrink-0" />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Chips de seleccionados */}
+              {seleccionados.length > 0 && (
+                <div className="mb-5">
+                  <p className="text-xs text-gray-500 mb-2 font-medium uppercase tracking-wide">Asistentes marcados</p>
+                  <div className="flex flex-wrap gap-2">
+                    {seleccionados.map((id) => {
+                      const nino = ninos.find((n) => n.id === id);
+                      if (!nino) return null;
+                      return (
+                        <Chip
+                          key={id}
+                          label={`${nino.nombre} ${nino.apellido}`}
+                          size="small"
+                          onDelete={() => toggleSeleccion(id)}
+                          color="primary"
+                          variant="outlined"
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Campo de comentario */}
+              <div className="mb-5">
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={2}
+                  label="Comentario (opcional)"
+                  placeholder="Ej: Clase muy activa, se trabajó el tema de ritmo..."
+                  value={comentario}
+                  onChange={(e) => setComentario(e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <MessageSquare className="w-4 h-4 text-gray-400 mr-2 mt-1 self-start" />
+                    ),
+                  }}
+                />
+              </div>
+
+              {/* Botón registrar */}
+              <div className="flex justify-end">
+                <Button
+                  variant="contained"
+                  size="large"
+                  startIcon={guardando ? <CircularProgress size={18} color="inherit" /> : <CheckCircle className="w-5 h-5" />}
+                  onClick={handleRegistrarAsistencia}
+                  disabled={guardando || seleccionados.length === 0}
+                >
+                  {guardando ? 'Registrando...' : `Registrar Asistencia (${seleccionados.length})`}
+                </Button>
+              </div>
             </div>
           </div>
         )}
@@ -112,7 +316,7 @@ export function ClasesSection() {
             <div className="p-12 text-center text-gray-500">
               <Users className="w-16 h-16 mx-auto mb-4 text-gray-300" />
               <p>No hay asistencias registradas aún</p>
-              <p className="text-sm mt-2">Selecciona una clase y registra la asistencia del día</p>
+              <p className="text-sm mt-2">Selecciona una clase, marca los estudiantes y registra la asistencia</p>
             </div>
           ) : (
             <TableContainer component={Paper} elevation={0}>
@@ -122,16 +326,36 @@ export function ClasesSection() {
                     <TableCell><strong>Fecha</strong></TableCell>
                     <TableCell><strong>Clase</strong></TableCell>
                     <TableCell><strong>Estudiantes</strong></TableCell>
+                    <TableCell><strong>Comentario</strong></TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {asistencias.map((asistencia, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{asistencia.fecha}</TableCell>
+                  {asistencias.map((a) => (
+                    <TableRow key={a.id}>
+                      <TableCell className="text-sm capitalize">{a.fecha}</TableCell>
                       <TableCell>
-                        <Chip label={asistencia.clase} size="small" />
+                        <Chip label={a.clase} size="small" color="primary" variant="outlined" />
                       </TableCell>
-                      <TableCell>{asistencia.estudiantes.length} asistentes</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          <span className="text-sm font-medium text-gray-700 mr-1">
+                            {a.estudiantes.length}
+                          </span>
+                          <div className="flex flex-wrap gap-1">
+                            {a.estudiantes.map((e) => (
+                              <Chip
+                                key={e.id}
+                                label={`${e.nombre} ${e.apellido}`}
+                                size="small"
+                                variant="outlined"
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-500 max-w-xs">
+                        {a.comentario || <span className="text-gray-300 italic">Sin comentario</span>}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
