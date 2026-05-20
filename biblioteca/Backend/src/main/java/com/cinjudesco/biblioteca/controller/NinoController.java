@@ -4,11 +4,12 @@ import com.cinjudesco.biblioteca.model.Nino;
 import com.cinjudesco.biblioteca.repository.NinoRepository;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
 @RequestMapping("/ninos")
-@CrossOrigin
+@CrossOrigin(origins = "*")
 public class NinoController {
 
     private final NinoRepository repo;
@@ -20,6 +21,11 @@ public class NinoController {
     // 📥 Registrar niño
     @PostMapping
     public Nino guardar(@RequestBody Nino nino) {
+
+        if (nino.getFechaRegistro() == null) {
+            nino.setFechaRegistro(LocalDate.now());
+        }
+
         return repo.save(nino);
     }
 
@@ -27,5 +33,11 @@ public class NinoController {
     @GetMapping
     public List<Nino> listar() {
         return repo.findAll();
+    }
+
+    // ❌ Eliminar niño
+    @DeleteMapping("/{id}")
+    public void eliminar(@PathVariable Long id) {
+        repo.deleteById(id);
     }
 }

@@ -1,55 +1,98 @@
-import { useState } from 'react';
-import { Button, TextField, Dialog, DialogTitle, DialogContent, DialogActions, Card, CardContent, IconButton, Chip } from '@mui/material';
-import { UserPlus, Trash2, Edit, Users } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Button, TextField, Dialog, DialogTitle, DialogContent, DialogActions, Card, CardContent, IconButton, Chip, CircularProgress } from '@mui/material';
+import { UserPlus, Trash2, Users, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
-interface Estudiante {
-  id: string;
+const API_URL = 'https://cinjudesco.onrender.com/ninos';
+
+interface Nino {
+  id: number;
   nombre: string;
   apellido: string;
   edad: number;
   telefono: string;
   direccion: string;
+  acudiente: string;
   fechaRegistro: string;
 }
 
 export function RegistroSection() {
-  const [estudiantes, setEstudiantes] = useState<Estudiante[]>([]);
+  const [estudiantes, setEstudiantes] = useState<Nino[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [guardando, setGuardando] = useState(false);
   const [nuevoEstudiante, setNuevoEstudiante] = useState({
     nombre: '',
     apellido: '',
     edad: '',
     telefono: '',
-    direccion: ''
+    direccion: '',
+    acudiente: ''
   });
 
-  const handleRegistrarEstudiante = () => {
+  const cargarNinos = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(API_URL);
+      if (!res.ok) throw new Error('Error al cargar');
+      const data: Nino[] = await res.json();
+      setEstudiantes(data);
+    } catch {
+      toast.error('No se pudo conectar al servidor. Verifica que el backend esté activo.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    cargarNinos();
+  }, []);
+
+  const handleRegistrarEstudiante = async () => {
     if (!nuevoEstudiante.nombre || !nuevoEstudiante.apellido) {
       toast.error('Nombre y apellido son obligatorios');
       return;
     }
 
-    const estudiante: Estudiante = {
-      id: Date.now().toString(),
-      nombre: nuevoEstudiante.nombre,
-      apellido: nuevoEstudiante.apellido,
-      edad: parseInt(nuevoEstudiante.edad) || 0,
-      telefono: nuevoEstudiante.telefono,
-      direccion: nuevoEstudiante.direccion,
-      fechaRegistro: new Date().toLocaleDateString('es-ES')
-    };
+    setGuardando(true);
+    try {
+      const payload = {
+        nombre: nuevoEstudiante.nombre,
+        apellido: nuevoEstudiante.apellido,
+        edad: parseInt(nuevoEstudiante.edad) || 0,
+        telefono: nuevoEstudiante.telefono,
+        direccion: nuevoEstudiante.direccion,
+        acudiente: nuevoEstudiante.acudiente,
+      };
 
-    setEstudiantes([...estudiantes, estudiante]);
-    toast.success(`${estudiante.nombre} ${estudiante.apellido} registrado exitosamente`);
-    setOpenDialog(false);
-    setNuevoEstudiante({ nombre: '', apellido: '', edad: '', telefono: '', direccion: '' });
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error('Error al guardar');
+      const creado: Nino = await res.json();
+      setEstudiantes(prev => [...prev, creado]);
+      toast.success(`${creado.nombre} ${creado.apellido} registrado exitosamente`);
+      setOpenDialog(false);
+      setNuevoEstudiante({ nombre: '', apellido: '', edad: '', telefono: '', direccion: '', acudiente: '' });
+    } catch {
+      toast.error('No se pudo registrar el estudiante. Verifica la conexión con el servidor.');
+    } finally {
+      setGuardando(false);
+    }
   };
 
-  const handleEliminar = (id: string, nombre: string) => {
-    if (window.confirm(`¿Estás seguro de eliminar a ${nombre}?`)) {
-      setEstudiantes(estudiantes.filter(e => e.id !== id));
+  const handleEliminar = async (id: number, nombre: string) => {
+    if (!window.confirm(`¿Estás seguro de eliminar a ${nombre}?`)) return;
+    try {
+      const res = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Error al eliminar');
+      setEstudiantes(prev => prev.filter(e => e.id !== id));
       toast.success('Estudiante eliminado');
+    } catch {
+      toast.error('No se pudo eliminar el estudiante.');
     }
   };
 
@@ -61,14 +104,19 @@ export function RegistroSection() {
             <h2 className="text-3xl font-bold mb-2">Registro de Estudiantes</h2>
             <p className="text-gray-600">Gestión de niños registrados en la fundación CINJUDESCO</p>
           </div>
-          <Button
-            variant="contained"
-            size="large"
-            startIcon={<UserPlus className="w-5 h-5" />}
-            onClick={() => setOpenDialog(true)}
-          >
-            Registrar Estudiante
-          </Button>
+          <div className="flex gap-2">
+            <IconButton onClick={cargarNinos} disabled={loading} title="Recargar lista">
+              <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+            </IconButton>
+            <Button
+              variant="contained"
+              size="large"
+              startIcon={<UserPlus className="w-5 h-5" />}
+              onClick={() => setOpenDialog(true)}
+            >
+              Registrar Estudiante
+            </Button>
+          </div>
         </div>
 
         {/* Estadísticas */}
@@ -87,7 +135,11 @@ export function RegistroSection() {
         </div>
 
         {/* Lista de estudiantes */}
-        {estudiantes.length === 0 ? (
+        {loading ? (
+          <div className="flex justify-center py-16">
+            <CircularProgress />
+          </div>
+        ) : estudiantes.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-12 text-center">
             <Users className="w-16 h-16 mx-auto mb-4 text-gray-300" />
             <p className="text-gray-500 mb-4">No hay estudiantes registrados</p>
@@ -109,29 +161,30 @@ export function RegistroSection() {
                       <h3 className="font-bold text-lg">
                         {estudiante.nombre} {estudiante.apellido}
                       </h3>
-                      <Chip
-                        label={`${estudiante.edad} años`}
-                        size="small"
-                        className="mt-1"
-                      />
+                      {estudiante.edad > 0 && (
+                        <Chip label={`${estudiante.edad} años`} size="small" className="mt-1" />
+                      )}
                     </div>
-                    <div className="flex gap-1">
-                      <IconButton size="small" color="error" onClick={() => handleEliminar(estudiante.id, `${estudiante.nombre} ${estudiante.apellido}`)}>
-                        <Trash2 className="w-4 h-4" />
-                      </IconButton>
-                    </div>
+                    <IconButton size="small" color="error" onClick={() => handleEliminar(estudiante.id, `${estudiante.nombre} ${estudiante.apellido}`)}>
+                      <Trash2 className="w-4 h-4" />
+                    </IconButton>
                   </div>
 
                   <div className="space-y-2 text-sm text-gray-600">
+                    {estudiante.acudiente && (
+                      <p><strong>Acudiente:</strong> {estudiante.acudiente}</p>
+                    )}
                     {estudiante.telefono && (
                       <p><strong>Teléfono:</strong> {estudiante.telefono}</p>
                     )}
                     {estudiante.direccion && (
                       <p><strong>Dirección:</strong> {estudiante.direccion}</p>
                     )}
-                    <p className="text-xs text-gray-400">
-                      Registrado: {estudiante.fechaRegistro}
-                    </p>
+                    {estudiante.fechaRegistro && (
+                      <p className="text-xs text-gray-400">
+                        Registrado: {new Date(estudiante.fechaRegistro).toLocaleDateString('es-ES')}
+                      </p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -178,12 +231,21 @@ export function RegistroSection() {
                 value={nuevoEstudiante.direccion}
                 onChange={(e) => setNuevoEstudiante({ ...nuevoEstudiante, direccion: e.target.value })}
               />
+              <TextField
+                fullWidth
+                label="Acudiente"
+                multiline
+                rows={2}
+                value={nuevoEstudiante.acudiente}
+                onChange={(e) => setNuevoEstudiante({ ...nuevoEstudiante, acudiente: e.target.value })}
+              />
             </div>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setOpenDialog(false)}>Cancelar</Button>
-            <Button variant="contained" onClick={handleRegistrarEstudiante}>
-              Registrar
+            <Button onClick={() => setOpenDialog(false)} disabled={guardando}>Cancelar</Button>
+            <Button variant="contained" onClick={handleRegistrarEstudiante} disabled={guardando}
+              startIcon={guardando ? <CircularProgress size={16} color="inherit" /> : undefined}>
+              {guardando ? 'Guardando...' : 'Registrar'}
             </Button>
           </DialogActions>
         </Dialog>

@@ -92,7 +92,7 @@ export function SearchSection() {
 
     try {
 
-      await fetch('http://localhost:8080/prestamos', {
+      await fetch('https://cinjudesco.onrender.com/prestamos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -121,7 +121,7 @@ export function SearchSection() {
 
     try {
 
-      await fetch(`http://localhost:8080/prestamos/devolver/${isbn}`, {
+      await fetch(`https://cinjudesco.onrender.com/prestamos/devolver/${isbn}`, {
         method: 'PUT'
       });
 
