@@ -1,25 +1,22 @@
 package com.cinjudesco.biblioteca.model;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.Data;
 
 @Entity
 @Data
+@Table(name = "usuarios")
 public class Usuario {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String nombreCompleto;
-    private int edad;
-    private String direccion;
+    private String nombre;
 
-    private String tipoDocumento;
-    private String numeroDocumento;
+    @Column(unique = true, nullable = false)
+    private String correo;
 
-    private String acudiente;
-    private String telefonoAcudiente;
-
-    private String rol;
+    @Column(nullable = false)
+    private String password;
 }

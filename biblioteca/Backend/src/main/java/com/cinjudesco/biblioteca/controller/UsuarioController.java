@@ -8,7 +8,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/usuarios")
-@CrossOrigin
+@CrossOrigin(origins = "*")
 public class UsuarioController {
 
     private final UsuarioRepository repo;
@@ -17,13 +17,21 @@ public class UsuarioController {
         this.repo = repo;
     }
 
+    // Registrar usuario
     @PostMapping
-    public Usuario guardar(@RequestBody Usuario u) {
-        return repo.save(u);
+    public Usuario guardar(@RequestBody Usuario usuario) {
+        return repo.save(usuario);
     }
 
+    // Listar usuarios
     @GetMapping
     public List<Usuario> listar() {
         return repo.findAll();
+    }
+
+    // Buscar por correo
+    @GetMapping("/correo/{correo}")
+    public Usuario buscarPorCorreo(@PathVariable String correo) {
+        return repo.findByCorreo(correo);
     }
 }
