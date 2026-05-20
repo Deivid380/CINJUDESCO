@@ -3,7 +3,7 @@ import { TextField, Button, CircularProgress, IconButton, InputAdornment } from 
 import { Eye, EyeOff, LogIn, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
 
-const LOGIN_API = 'https://cinjudesco.onrender.com/usuarios/login';
+const LOGIN_API = 'https://cinjudesco.onrender.com/usuarios';
 
 export interface Usuario {
   id: number;
