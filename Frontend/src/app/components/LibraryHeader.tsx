@@ -5,17 +5,22 @@ import { IconButton, Drawer, List, ListItem, ListItemButton, ListItemText } from
 interface LibraryHeaderProps {
   seccionActiva: 'biblioteca' | 'clases' | 'registro';
   onSeccionChange: (seccion: 'biblioteca' | 'clases' | 'registro') => void;
+  esInvitado?: boolean;
 }
 
-export function LibraryHeader({ seccionActiva, onSeccionChange }: LibraryHeaderProps) {
+export function LibraryHeader({ seccionActiva, onSeccionChange, esInvitado = false }: LibraryHeaderProps) {
   const esCINJUDESCO = seccionActiva === 'clases' || seccionActiva === 'registro';
   const [menuAbierto, setMenuAbierto] = useState(false);
 
-  const menuOpciones = [
+  const todasOpciones = [
     { id: 'biblioteca' as const, label: 'Catálogo' },
     { id: 'clases' as const, label: 'Clases' },
     { id: 'registro' as const, label: 'Registro' },
   ];
+
+  const menuOpciones = esInvitado
+    ? todasOpciones.filter((op) => op.id === 'biblioteca')
+    : todasOpciones;
 
   const handleMenuClick = (seccion: 'biblioteca' | 'clases' | 'registro') => {
     onSeccionChange(seccion);
@@ -38,24 +43,15 @@ export function LibraryHeader({ seccionActiva, onSeccionChange }: LibraryHeaderP
 
           {/* Menú desktop */}
           <nav className="hidden md:flex items-center gap-6">
-            <button
-              onClick={() => onSeccionChange('biblioteca')}
-              className={`${seccionActiva === 'biblioteca' ? 'text-blue-600 font-semibold' : 'text-gray-700'} hover:text-blue-600 transition`}
-            >
-              Catálogo
-            </button>
-            <button
-              onClick={() => onSeccionChange('clases')}
-              className={`${seccionActiva === 'clases' ? 'text-blue-600 font-semibold' : 'text-gray-700'} hover:text-blue-600 transition`}
-            >
-              Clases
-            </button>
-            <button
-              onClick={() => onSeccionChange('registro')}
-              className={`${seccionActiva === 'registro' ? 'text-blue-600 font-semibold' : 'text-gray-700'} hover:text-blue-600 transition`}
-            >
-              Registro
-            </button>
+            {menuOpciones.map((opcion) => (
+              <button
+                key={opcion.id}
+                onClick={() => onSeccionChange(opcion.id)}
+                className={`${seccionActiva === opcion.id ? 'text-blue-600 font-semibold' : 'text-gray-700'} hover:text-blue-600 transition`}
+              >
+                {opcion.label}
+              </button>
+            ))}
           </nav>
 
           <div className="flex items-center gap-2">

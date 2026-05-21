@@ -123,8 +123,30 @@ export function LoginSection({ onLogin }: Props) {
             </Button>
           </form>
 
+          <div className="mt-5">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-200"></div>
+              </div>
+              <div className="relative flex justify-center text-xs">
+                <span className="px-3 bg-white text-gray-400">O</span>
+              </div>
+            </div>
+
+            <Button
+              variant="outlined"
+              fullWidth
+              size="large"
+              onClick={() => onLogin({ id: 0, nombre: 'Invitado', correo: '' })}
+              disabled={cargando}
+              sx={{ mt: 3, py: 1.5, borderRadius: 2, fontWeight: 600, borderColor: '#d1d5db', color: '#6b7280' }}
+            >
+              Continuar como Invitado
+            </Button>
+          </div>
+
           <p className="text-center text-xs text-gray-300 mt-8">
-            Solo usuarios autorizados pueden acceder al sistema
+            Solo usuarios autorizados pueden acceder al sistema completo
           </p>
         </div>
       </div>

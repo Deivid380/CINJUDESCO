@@ -20,6 +20,8 @@ export default function App() {
   const [modoAdmin, setModoAdmin] = useState(false);
   const [seccionActiva, setSeccionActiva] = useState<Seccion>('biblioteca');
 
+  const esInvitado = usuario?.id === 0;
+
   const handleLogin = (u: Usuario) => setUsuario(u);
 
   const handleLogout = () => {
@@ -39,7 +41,7 @@ export default function App() {
   }
 
   const renderContenido = () => {
-    if (modoAdmin && seccionActiva === 'biblioteca') return <AdminPanel />;
+    if (modoAdmin && seccionActiva === 'biblioteca' && !esInvitado) return <AdminPanel />;
     switch (seccionActiva) {
       case 'biblioteca':
         return (
@@ -50,9 +52,9 @@ export default function App() {
           </>
         );
       case 'clases':
-        return <ClasesSection />;
+        return esInvitado ? null : <ClasesSection />;
       case 'registro':
-        return <RegistroSection />;
+        return esInvitado ? null : <RegistroSection />;
       default:
         return null;
     }
@@ -64,13 +66,14 @@ export default function App() {
       <LibraryHeader
         seccionActiva={seccionActiva}
         onSeccionChange={setSeccionActiva}
+        esInvitado={esInvitado}
       />
 
       {/* Barra de herramientas */}
       <div className="bg-gray-100 border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {seccionActiva === 'biblioteca' && (
+            {seccionActiva === 'biblioteca' && !esInvitado && (
               <Button
                 variant={modoAdmin ? 'contained' : 'outlined'}
                 startIcon={modoAdmin ? <ShieldCheck className="w-4 h-4" /> : <BookOpen className="w-4 h-4" />}
@@ -83,13 +86,17 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-500 hidden sm:block">
-              Hola, <strong className="text-gray-700">{usuario.nombre ?? usuario.correo}</strong>
-            </span>
-            <Tooltip title="Cerrar sesión">
+            {esInvitado ? (
+              <span className="text-sm text-gray-400 hidden sm:block italic">Modo invitado</span>
+            ) : (
+              <span className="text-sm text-gray-500 hidden sm:block">
+                Hola, <strong className="text-gray-700">{usuario.nombre}</strong>
+              </span>
+            )}
+            <Tooltip title={esInvitado ? 'Volver al inicio' : 'Cerrar sesión'}>
               <Button
                 variant="outlined"
-                color="error"
+                color={esInvitado ? 'primary' : 'error'}
                 size="small"
                 startIcon={<LogOut className="w-4 h-4" />}
                 onClick={handleLogout}
