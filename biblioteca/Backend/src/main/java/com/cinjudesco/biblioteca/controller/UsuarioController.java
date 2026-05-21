@@ -5,7 +5,9 @@ import com.cinjudesco.biblioteca.repository.UsuarioRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/usuarios")
@@ -24,23 +26,41 @@ public class UsuarioController {
     }
 
     @GetMapping
-    public List<Usuario> listar() {
+    public Object listar() {
         return repo.findAll();
     }
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Usuario loginData) {
 
-        Usuario usuario = repo.findByCorreo(loginData.getCorreo());
+        System.out.println("CORREO RECIBIDO: " + loginData.getCorreo());
+        System.out.println("PASSWORD RECIBIDA: " + loginData.getContrasena());
 
-        if (usuario == null) {
+        Optional<Usuario> optionalUsuario =
+                repo.findByCorreoIgnoreCase(loginData.getCorreo().trim());
+
+        if (optionalUsuario.isEmpty()) {
             return ResponseEntity.status(401).body("Usuario no encontrado");
         }
 
-        if (!usuario.getContrasena().equals(loginData.getContrasena())) {
+        Usuario usuario = optionalUsuario.get();
+
+        String passwordDB = usuario.getContrasena().trim();
+        String passwordRequest = loginData.getContrasena().trim();
+
+        System.out.println("PASSWORD DB: " + passwordDB);
+        System.out.println("PASSWORD REQUEST: " + passwordRequest);
+
+        if (!passwordDB.equals(passwordRequest)) {
             return ResponseEntity.status(401).body("Contraseña incorrecta");
         }
 
-        return ResponseEntity.ok(usuario);
+        Map<String, Object> respuesta = new HashMap<>();
+
+        respuesta.put("id", usuario.getId());
+        respuesta.put("nombre", usuario.getNombre());
+        respuesta.put("correo", usuario.getCorreo());
+
+        return ResponseEntity.ok(respuesta);
     }
 }
