@@ -84,7 +84,7 @@ export default function App() {
 
           <div className="flex items-center gap-3">
             <span className="text-sm text-gray-500 hidden sm:block">
-              Hola, <strong className="text-gray-700">{usuario.nombre}</strong>
+              Hola, <strong className="text-gray-700">{usuario.nombre ?? usuario.correo}</strong>
             </span>
             <Tooltip title="Cerrar sesión">
               <Button
