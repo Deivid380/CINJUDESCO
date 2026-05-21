@@ -21,36 +21,63 @@ export function LoginSection({ onLogin }: Props) {
   const [mostrarPassword, setMostrarPassword] = useState(false);
   const [cargando, setCargando] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!correo.trim() || !contrasena.trim()) {
-      toast.error('Ingresa correo y contraseña');
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  if (!correo.trim() || !contrasena.trim()) {
+    toast.error('Ingresa correo y contraseña');
+    return;
+  }
+
+  setCargando(true);
+
+  try {
+
+    const res = await fetch(LOGIN_API, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        correo: correo.trim(),
+        contrasena: contrasena.trim(),
+      }),
+    });
+
+    console.log("STATUS:", res.status);
+
+    const text = await res.text();
+
+    console.log("RESPUESTA:", text);
+
+    if (res.status === 401 || res.status === 403) {
+      toast.error('Correo o contraseña incorrectos');
       return;
     }
 
-    setCargando(true);
-    try {
-      const res = await fetch(LOGIN_API, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ correo: correo.trim(), contrasena: contrasena.trim() }),
-      });
-
-      if (res.status === 401 || res.status === 403) {
-        toast.error('Correo o contraseña incorrectos');
-        return;
-      }
-      if (!res.ok) throw new Error();
-
-      const data: Usuario = await res.json();
-      toast.success(`Bienvenido, ${data.nombre ?? data.correo}`);
-      onLogin(data);
-    } catch {
-      toast.error('No se pudo conectar al servidor. Verifica que el backend esté activo.');
-    } finally {
-      setCargando(false);
+    if (!res.ok) {
+      toast.error('Error del servidor');
+      return;
     }
-  };
+
+    const data: Usuario = JSON.parse(text);
+
+    toast.success(`Bienvenido, ${data.nombre}`);
+
+    onLogin(data);
+
+  } catch (error) {
+
+    console.error(error);
+
+    toast.error('No se pudo conectar al servidor.');
+
+  } finally {
+
+    setCargando(false);
+
+  }
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-950 via-blue-900 to-blue-800 flex items-center justify-center px-4">
