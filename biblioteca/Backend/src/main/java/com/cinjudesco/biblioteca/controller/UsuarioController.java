@@ -18,7 +18,7 @@ public class UsuarioController {
     }
 
     // Registrar usuario
-    @PostMapping
+    @PostMapping("/login")
     public Usuario guardar(@RequestBody Usuario usuario) {
         return repo.save(usuario);
     }
