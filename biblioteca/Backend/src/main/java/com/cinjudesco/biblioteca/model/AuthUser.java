@@ -5,8 +5,8 @@ import lombok.Data;
 
 @Entity
 @Data
-@Table(name = "usuarios")
-public class Usuario {
+@Table(name = "auth_users")
+public class AuthUser {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -18,5 +18,5 @@ public class Usuario {
     private String correo;
 
     @Column(nullable = false)
-    private String contrasena;
+    private String password;
 }

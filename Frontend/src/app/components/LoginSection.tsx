@@ -3,7 +3,7 @@ import { TextField, Button, CircularProgress, IconButton, InputAdornment } from 
 import { Eye, EyeOff, LogIn, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
 
-const LOGIN_API = 'https://cinjudesco.onrender.com/usuarios/login';
+const LOGIN_API = 'https://cinjudesco.onrender.com/auth/login';
 
 export interface Usuario {
   id: number;
@@ -33,7 +33,7 @@ export function LoginSection({ onLogin }: Props) {
       const res = await fetch(LOGIN_API, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ correo: correo.trim(), contrasena: contrasena.trim() }),
+        body: JSON.stringify({ correo: correo.trim(), password: contrasena.trim() }),
       });
 
       if (res.status === 401 || res.status === 403) {
