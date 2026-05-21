@@ -27,6 +27,8 @@ export function AdminPanel() {
   const [libros, setLibros] = useState<Libro[]>([]);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
+  const [estanteria, setEstanteria] = useState('');
+  const [fila, setFila] = useState('');
   const [nuevoLibro, setNuevoLibro] = useState<Libro>({
     isbn: '',
     titulo: '',
@@ -62,8 +64,18 @@ export function AdminPanel() {
       return;
     }
 
+    // Construir ubicación desde estantería y fila
+    let ubicacionFinal = '';
+    if (estanteria && fila) {
+      ubicacionFinal = `Estantería ${estanteria}, Fila ${fila}`;
+    } else if (estanteria) {
+      ubicacionFinal = `Estantería ${estanteria}`;
+    } else if (fila) {
+      ubicacionFinal = `Fila ${fila}`;
+    }
+
     try {
-      await crearLibro(nuevoLibro);
+      await crearLibro({ ...nuevoLibro, ubicacion: ubicacionFinal });
       toast.success('Libro creado exitosamente');
       setOpenDialog(false);
       setNuevoLibro({
@@ -76,6 +88,8 @@ export function AdminPanel() {
         portadaUrl: '',
         disponible: true,
       });
+      setEstanteria('');
+      setFila('');
       cargarLibros();
     } catch (error) {
       toast.error('Error al crear el libro');
@@ -248,7 +262,11 @@ export function AdminPanel() {
         )}
 
         {/* Dialog para agregar libro */}
-        <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
+        <Dialog open={openDialog} onClose={() => {
+          setOpenDialog(false);
+          setEstanteria('');
+          setFila('');
+        }} maxWidth="sm" fullWidth>
           <DialogTitle>Agregar Nuevo Libro</DialogTitle>
           <DialogContent>
             <div className="space-y-4 pt-2">
@@ -296,13 +314,35 @@ export function AdminPanel() {
                 value={nuevoLibro.resumen}
                 onChange={(e) => setNuevoLibro({ ...nuevoLibro, resumen: e.target.value })}
               />
-              <TextField
-                fullWidth
-                label="Ubicación"
-                value={nuevoLibro.ubicacion}
-                onChange={(e) => setNuevoLibro({ ...nuevoLibro, ubicacion: e.target.value })}
-                placeholder="Ej: Estante A3, Nivel 2"
-              />
+              <div className="grid grid-cols-2 gap-3">
+                <TextField
+                  label="Estantería"
+                  type="number"
+                  value={estanteria}
+                  onChange={(e) => setEstanteria(e.target.value)}
+                  placeholder="1"
+                  inputProps={{ min: 1 }}
+                />
+                <TextField
+                  label="Fila"
+                  type="number"
+                  value={fila}
+                  onChange={(e) => setFila(e.target.value)}
+                  placeholder="1"
+                  inputProps={{ min: 1 }}
+                />
+              </div>
+              {(estanteria || fila) && (
+                <div className="text-sm text-gray-500 -mt-2">
+                  Vista previa: <strong className="text-gray-700">
+                    {estanteria && fila
+                      ? `Estantería ${estanteria}, Fila ${fila}`
+                      : estanteria
+                      ? `Estantería ${estanteria}`
+                      : `Fila ${fila}`}
+                  </strong>
+                </div>
+              )}
               <TextField
                 fullWidth
                 label="URL de Portada"
@@ -313,7 +353,11 @@ export function AdminPanel() {
             </div>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setOpenDialog(false)}>Cancelar</Button>
+            <Button onClick={() => {
+              setOpenDialog(false);
+              setEstanteria('');
+              setFila('');
+            }}>Cancelar</Button>
             <Button variant="contained" onClick={handleCrearLibro}>
               Crear Libro
             </Button>
