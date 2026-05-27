@@ -7,7 +7,7 @@ import jakarta.persistence.*;
 public class Libro {
 
     @Id
-    private String isbn; // 🔥 ahora es el ID
+    private String isbn; 
 
     private String titulo;
     private String autor;

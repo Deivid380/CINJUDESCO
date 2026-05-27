@@ -3,26 +3,27 @@ import { BookOpen, Search, User, Menu, X } from 'lucide-react';
 import { IconButton, Drawer, List, ListItem, ListItemButton, ListItemText } from '@mui/material';
 
 interface LibraryHeaderProps {
-  seccionActiva: 'biblioteca' | 'clases' | 'registro';
-  onSeccionChange: (seccion: 'biblioteca' | 'clases' | 'registro') => void;
+  seccionActiva: 'biblioteca' | 'clases' | 'registro' | 'prestamos';
+  onSeccionChange: (seccion: 'biblioteca' | 'clases' | 'registro' | 'prestamos') => void;
   esInvitado?: boolean;
 }
 
 export function LibraryHeader({ seccionActiva, onSeccionChange, esInvitado = false }: LibraryHeaderProps) {
-  const esCINJUDESCO = seccionActiva === 'clases' || seccionActiva === 'registro';
+  const esCINJUDESCO = seccionActiva === 'clases' || seccionActiva === 'registro' || seccionActiva === 'prestamos';
   const [menuAbierto, setMenuAbierto] = useState(false);
 
   const todasOpciones = [
     { id: 'biblioteca' as const, label: 'Catálogo' },
     { id: 'clases' as const, label: 'Clases' },
     { id: 'registro' as const, label: 'Registro' },
+    { id: 'prestamos' as const, label: 'Préstamos' },
   ];
 
   const menuOpciones = esInvitado
     ? todasOpciones.filter((op) => op.id === 'biblioteca')
     : todasOpciones;
 
-  const handleMenuClick = (seccion: 'biblioteca' | 'clases' | 'registro') => {
+  const handleMenuClick = (seccion: 'biblioteca' | 'clases' | 'registro' | 'prestamos') => {
     onSeccionChange(seccion);
     setMenuAbierto(false);
   };

@@ -1,11 +1,11 @@
 import { BookOpen, Mail, Phone, MapPin } from "lucide-react";
 
 interface LibraryFooterProps {
-  seccionActiva: 'biblioteca' | 'clases' | 'registro';
+  seccionActiva: 'biblioteca' | 'clases' | 'registro' | 'prestamos';
 }
 
 export function LibraryFooter({ seccionActiva }: LibraryFooterProps) {
-  const esSINJUDESCO = seccionActiva === 'clases' || seccionActiva === 'registro';
+  const esCINJUDESCO = seccionActiva === 'clases' || seccionActiva === 'registro' || seccionActiva === 'prestamos';
   return (
     <footer className="bg-gray-900 text-gray-300 py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -14,7 +14,7 @@ export function LibraryFooter({ seccionActiva }: LibraryFooterProps) {
             <div className="flex items-center gap-2">
               <BookOpen className="w-6 h-6 text-blue-400" />
               <span className="font-semibold text-white">
-                {esSINJUDESCO ? 'SINJUDESCO' : 'Biblioteca Comunitaria Manuela Beltrán'}
+                {esCINJUDESCO ? 'CINJUDESCO' : 'Biblioteca Comunitaria Manuela Beltrán'}
               </span>
             </div>
             <p className="text-sm">
@@ -126,7 +126,7 @@ export function LibraryFooter({ seccionActiva }: LibraryFooterProps) {
 
         <div className="border-t border-gray-800 mt-8 pt-8 text-center text-sm">
           <p>
-            &copy; {new Date().getFullYear()} {esSINJUDESCO ? 'SINJUDESCO' : 'Biblioteca Comunitaria Manuela Beltrán'}. Todos los derechos reservados.
+            &copy; {new Date().getFullYear()} {esCINJUDESCO ? 'CINJUDESCO' : 'Biblioteca Comunitaria Manuela Beltrán'}. Todos los derechos reservados.
           </p>
         </div>
       </div>

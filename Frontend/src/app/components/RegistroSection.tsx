@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Button, TextField, Dialog, DialogTitle, DialogContent, DialogActions, Card, CardContent, IconButton, Chip, CircularProgress } from '@mui/material';
-import { UserPlus, Trash2, Users, RefreshCw } from 'lucide-react';
+import { Button, TextField, Dialog, DialogTitle, DialogContent, DialogActions, Card, CardContent, IconButton, Chip, CircularProgress, Tabs, Tab, Box } from '@mui/material';
+import { UserPlus, Trash2, Users, RefreshCw, GraduationCap } from 'lucide-react';
 import { toast } from 'sonner';
 
 const API_URL = 'https://cinjudesco.onrender.com/ninos';
+const MAESTROS_API = 'https://cinjudesco.onrender.com/auth/register';
 
 interface Nino {
   id: number;
@@ -16,9 +17,18 @@ interface Nino {
   fechaRegistro: string;
 }
 
+interface Maestro {
+  id: number;
+  nombre: string;
+  correo: string;
+}
+
 export function RegistroSection() {
+  const [tabActivo, setTabActivo] = useState(0);
   const [estudiantes, setEstudiantes] = useState<Nino[]>([]);
+  const [maestros, setMaestros] = useState<Maestro[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
+  const [openDialogMaestro, setOpenDialogMaestro] = useState(false);
   const [loading, setLoading] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [nuevoEstudiante, setNuevoEstudiante] = useState({
@@ -28,6 +38,11 @@ export function RegistroSection() {
     telefono: '',
     direccion: '',
     acudiente: ''
+  });
+  const [nuevoMaestro, setNuevoMaestro] = useState({
+    nombre: '',
+    correo: '',
+    password: ''
   });
 
   const cargarNinos = async () => {
@@ -96,100 +111,201 @@ export function RegistroSection() {
     }
   };
 
+  const handleRegistrarMaestro = async () => {
+    if (!nuevoMaestro.nombre || !nuevoMaestro.correo || !nuevoMaestro.password) {
+      toast.error('Todos los campos son obligatorios');
+      return;
+    }
+
+    setGuardando(true);
+    try {
+      const res = await fetch(MAESTROS_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nombre: nuevoMaestro.nombre,
+          correo: nuevoMaestro.correo,
+          password: nuevoMaestro.password
+        }),
+      });
+
+      if (res.status === 400) {
+        const errorMsg = await res.text();
+        toast.error(errorMsg || 'El correo ya existe');
+        return;
+      }
+      if (!res.ok) throw new Error();
+
+      const creado: Maestro = await res.json();
+      setMaestros(prev => [...prev, creado]);
+      toast.success(`Maestro ${creado.nombre} registrado exitosamente`);
+      setOpenDialogMaestro(false);
+      setNuevoMaestro({ nombre: '', correo: '', password: '' });
+    } catch {
+      toast.error('No se pudo registrar el maestro. Verifica la conexión con el servidor.');
+    } finally {
+      setGuardando(false);
+    }
+  };
+
   return (
     <section className="py-12 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h2 className="text-3xl font-bold mb-2">Registro de Estudiantes</h2>
-            <p className="text-gray-600">Gestión de niños registrados en la fundación CINJUDESCO</p>
+            <h2 className="text-3xl font-bold mb-2">Registro</h2>
+            <p className="text-gray-600">Gestión de estudiantes y maestros de la fundación CINJUDESCO</p>
           </div>
           <div className="flex gap-2">
             <IconButton onClick={cargarNinos} disabled={loading} title="Recargar lista">
               <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
             </IconButton>
-            <Button
-              variant="contained"
-              size="large"
-              startIcon={<UserPlus className="w-5 h-5" />}
-              onClick={() => setOpenDialog(true)}
-            >
-              Registrar Estudiante
-            </Button>
+            {tabActivo === 0 ? (
+              <Button
+                variant="contained"
+                size="large"
+                startIcon={<UserPlus className="w-5 h-5" />}
+                onClick={() => setOpenDialog(true)}
+              >
+                Registrar Estudiante
+              </Button>
+            ) : (
+              <Button
+                variant="contained"
+                size="large"
+                color="secondary"
+                startIcon={<GraduationCap className="w-5 h-5" />}
+                onClick={() => setOpenDialogMaestro(true)}
+              >
+                Registrar Maestro
+              </Button>
+            )}
           </div>
         </div>
 
-        {/* Estadísticas */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-600 text-sm">Total Estudiantes</p>
-                  <p className="text-3xl font-bold">{estudiantes.length}</p>
-                </div>
-                <Users className="w-12 h-12 text-blue-600" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Tabs */}
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+          <Tabs value={tabActivo} onChange={(_, v) => setTabActivo(v)}>
+            <Tab label={`Estudiantes (${estudiantes.length})`} icon={<Users className="w-4 h-4" />} iconPosition="start" />
+            <Tab label={`Maestros (${maestros.length})`} icon={<GraduationCap className="w-4 h-4" />} iconPosition="start" />
+          </Tabs>
+        </Box>
 
-        {/* Lista de estudiantes */}
-        {loading ? (
-          <div className="flex justify-center py-16">
-            <CircularProgress />
-          </div>
-        ) : estudiantes.length === 0 ? (
-          <div className="bg-white rounded-lg shadow p-12 text-center">
-            <Users className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-            <p className="text-gray-500 mb-4">No hay estudiantes registrados</p>
-            <Button
-              variant="outlined"
-              startIcon={<UserPlus />}
-              onClick={() => setOpenDialog(true)}
-            >
-              Registrar primer estudiante
-            </Button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {estudiantes.map((estudiante) => (
-              <Card key={estudiante.id}>
+        {/* Contenido de tabs */}
+        {tabActivo === 0 && (
+          <>
+            {/* Estadísticas */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <Card>
                 <CardContent>
-                  <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="font-bold text-lg">
-                        {estudiante.nombre} {estudiante.apellido}
-                      </h3>
-                      {estudiante.edad > 0 && (
-                        <Chip label={`${estudiante.edad} años`} size="small" className="mt-1" />
-                      )}
+                      <p className="text-gray-600 text-sm">Total Estudiantes</p>
+                      <p className="text-3xl font-bold">{estudiantes.length}</p>
                     </div>
-                    <IconButton size="small" color="error" onClick={() => handleEliminar(estudiante.id, `${estudiante.nombre} ${estudiante.apellido}`)}>
-                      <Trash2 className="w-4 h-4" />
-                    </IconButton>
-                  </div>
-
-                  <div className="space-y-2 text-sm text-gray-600">
-                    {estudiante.acudiente && (
-                      <p><strong>Acudiente:</strong> {estudiante.acudiente}</p>
-                    )}
-                    {estudiante.telefono && (
-                      <p><strong>Teléfono:</strong> {estudiante.telefono}</p>
-                    )}
-                    {estudiante.direccion && (
-                      <p><strong>Dirección:</strong> {estudiante.direccion}</p>
-                    )}
-                    {estudiante.fechaRegistro && (
-                      <p className="text-xs text-gray-400">
-                        Registrado: {new Date(estudiante.fechaRegistro).toLocaleDateString('es-ES')}
-                      </p>
-                    )}
+                    <Users className="w-12 h-12 text-blue-600" />
                   </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
+            </div>
+
+            {/* Lista de estudiantes */}
+            {loading ? (
+              <div className="flex justify-center py-16">
+                <CircularProgress />
+              </div>
+            ) : estudiantes.length === 0 ? (
+              <div className="bg-white rounded-lg shadow p-12 text-center">
+                <Users className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                <p className="text-gray-500 mb-4">No hay estudiantes registrados</p>
+                <Button
+                  variant="outlined"
+                  startIcon={<UserPlus />}
+                  onClick={() => setOpenDialog(true)}
+                >
+                  Registrar primer estudiante
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {estudiantes.map((estudiante) => (
+                  <Card key={estudiante.id}>
+                    <CardContent>
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <h3 className="font-bold text-lg">
+                            {estudiante.nombre} {estudiante.apellido}
+                          </h3>
+                          {estudiante.edad > 0 && (
+                            <Chip label={`${estudiante.edad} años`} size="small" className="mt-1" />
+                          )}
+                        </div>
+                        <IconButton size="small" color="error" onClick={() => handleEliminar(estudiante.id, `${estudiante.nombre} ${estudiante.apellido}`)}>
+                          <Trash2 className="w-4 h-4" />
+                        </IconButton>
+                      </div>
+
+                      <div className="space-y-2 text-sm text-gray-600">
+                        {estudiante.acudiente && (
+                          <p><strong>Acudiente:</strong> {estudiante.acudiente}</p>
+                        )}
+                        {estudiante.telefono && (
+                          <p><strong>Teléfono:</strong> {estudiante.telefono}</p>
+                        )}
+                        {estudiante.direccion && (
+                          <p><strong>Dirección:</strong> {estudiante.direccion}</p>
+                        )}
+                        {estudiante.fechaRegistro && (
+                          <p className="text-xs text-gray-400">
+                            Registrado: {new Date(estudiante.fechaRegistro).toLocaleDateString('es-ES')}
+                          </p>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {tabActivo === 1 && (
+          <>
+            {/* Lista de maestros */}
+            {maestros.length === 0 ? (
+              <div className="bg-white rounded-lg shadow p-12 text-center">
+                <GraduationCap className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                <p className="text-gray-500 mb-4">No hay maestros registrados</p>
+                <Button
+                  variant="outlined"
+                  color="secondary"
+                  startIcon={<GraduationCap />}
+                  onClick={() => setOpenDialogMaestro(true)}
+                >
+                  Registrar primer maestro
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {maestros.map((maestro) => (
+                  <Card key={maestro.id}>
+                    <CardContent>
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <h3 className="font-bold text-lg">{maestro.nombre}</h3>
+                          <Chip label="Maestro" size="small" color="secondary" className="mt-1" />
+                        </div>
+                        <GraduationCap className="w-8 h-8 text-purple-600" />
+                      </div>
+                      <div className="space-y-2 text-sm text-gray-600">
+                        <p><strong>Correo:</strong> {maestro.correo}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </>
         )}
 
         {/* Dialog para registrar estudiante */}
@@ -244,6 +360,44 @@ export function RegistroSection() {
           <DialogActions>
             <Button onClick={() => setOpenDialog(false)} disabled={guardando}>Cancelar</Button>
             <Button variant="contained" onClick={handleRegistrarEstudiante} disabled={guardando}
+              startIcon={guardando ? <CircularProgress size={16} color="inherit" /> : undefined}>
+              {guardando ? 'Guardando...' : 'Registrar'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Dialog para registrar maestro */}
+        <Dialog open={openDialogMaestro} onClose={() => setOpenDialogMaestro(false)} maxWidth="sm" fullWidth>
+          <DialogTitle>Registrar Nuevo Maestro</DialogTitle>
+          <DialogContent>
+            <div className="space-y-4 pt-2">
+              <TextField
+                fullWidth
+                label="Nombre Completo *"
+                value={nuevoMaestro.nombre}
+                onChange={(e) => setNuevoMaestro({ ...nuevoMaestro, nombre: e.target.value })}
+              />
+              <TextField
+                fullWidth
+                label="Correo Electrónico *"
+                type="email"
+                value={nuevoMaestro.correo}
+                onChange={(e) => setNuevoMaestro({ ...nuevoMaestro, correo: e.target.value })}
+                placeholder="maestro@ejemplo.com"
+              />
+              <TextField
+                fullWidth
+                label="Contraseña *"
+                type="password"
+                value={nuevoMaestro.password}
+                onChange={(e) => setNuevoMaestro({ ...nuevoMaestro, password: e.target.value })}
+                helperText="Será la contraseña de acceso al sistema"
+              />
+            </div>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpenDialogMaestro(false)} disabled={guardando}>Cancelar</Button>
+            <Button variant="contained" color="secondary" onClick={handleRegistrarMaestro} disabled={guardando}
               startIcon={guardando ? <CircularProgress size={16} color="inherit" /> : undefined}>
               {guardando ? 'Guardando...' : 'Registrar'}
             </Button>

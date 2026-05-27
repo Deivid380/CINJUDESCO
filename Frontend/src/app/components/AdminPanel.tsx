@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Button, TextField, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Chip, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
+import { Button, TextField, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Chip, Select, MenuItem, FormControl, InputLabel, CircularProgress } from '@mui/material';
 import { Plus, Trash2, BookCheck, BookX, Edit } from 'lucide-react';
 import { obtenerLibros, crearLibro, eliminarLibro, prestarLibro, devolverLibro, type Libro } from '../services/api';
 import { toast } from 'sonner';
@@ -27,8 +27,16 @@ export function AdminPanel() {
   const [libros, setLibros] = useState<Libro[]>([]);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
+  const [openDialogPrestamo, setOpenDialogPrestamo] = useState(false);
+  const [libroAPrestar, setLibroAPrestar] = useState<Libro | null>(null);
+  const [guardandoPrestamo, setGuardandoPrestamo] = useState(false);
   const [estanteria, setEstanteria] = useState('');
   const [fila, setFila] = useState('');
+  const [datosPrestamo, setDatosPrestamo] = useState({
+    nombrePrestatario: '',
+    documentoPrestatario: '',
+    telefonoPrestatario: ''
+  });
   const [nuevoLibro, setNuevoLibro] = useState<Libro>({
     isbn: '',
     titulo: '',
@@ -110,14 +118,48 @@ export function AdminPanel() {
     }
   };
 
-  const handlePrestarLibro = async (isbn: string) => {
+  const handlePrestarLibro = (libro: Libro) => {
+    setLibroAPrestar(libro);
+    setOpenDialogPrestamo(true);
+  };
+
+  const handleConfirmarPrestamo = async () => {
+    if (!libroAPrestar) return;
+    if (!datosPrestamo.nombrePrestatario || !datosPrestamo.documentoPrestatario || !datosPrestamo.telefonoPrestatario) {
+      toast.error('Todos los campos son obligatorios');
+      return;
+    }
+
+    setGuardandoPrestamo(true);
     try {
-      await prestarLibro(isbn);
-      toast.success('Libro prestado');
+      // Enviar datos del préstamo al backend
+      const res = await fetch('https://cinjudesco.onrender.com/prestamos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          isbn: libroAPrestar.isbn,
+          tituloLibro: libroAPrestar.titulo,
+          nombrePrestatario: datosPrestamo.nombrePrestatario,
+          documentoPrestatario: datosPrestamo.documentoPrestatario,
+          telefonoPrestatario: datosPrestamo.telefonoPrestatario
+        }),
+      });
+
+      if (!res.ok) throw new Error();
+
+      // Marcar libro como prestado
+      await prestarLibro(libroAPrestar.isbn);
+
+      toast.success(`Libro prestado a ${datosPrestamo.nombrePrestatario}`);
+      setOpenDialogPrestamo(false);
+      setDatosPrestamo({ nombrePrestatario: '', documentoPrestatario: '', telefonoPrestatario: '' });
+      setLibroAPrestar(null);
       cargarLibros();
     } catch (error) {
-      toast.error('Error al prestar el libro');
+      toast.error('Error al registrar el préstamo');
       console.error(error);
+    } finally {
+      setGuardandoPrestamo(false);
     }
   };
 
@@ -229,7 +271,7 @@ export function AdminPanel() {
                           <IconButton
                             size="small"
                             color="primary"
-                            onClick={() => handlePrestarLibro(libro.isbn)}
+                            onClick={() => handlePrestarLibro(libro)}
                             title="Prestar libro"
                           >
                             <BookX className="w-4 h-4" />
@@ -360,6 +402,55 @@ export function AdminPanel() {
             }}>Cancelar</Button>
             <Button variant="contained" onClick={handleCrearLibro}>
               Crear Libro
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Dialog para registrar préstamo */}
+        <Dialog open={openDialogPrestamo} onClose={() => setOpenDialogPrestamo(false)} maxWidth="sm" fullWidth>
+          <DialogTitle>Registrar Préstamo</DialogTitle>
+          <DialogContent>
+            {libroAPrestar && (
+              <>
+                <div className="mb-4 p-3 bg-blue-50 rounded">
+                  <p className="text-sm text-gray-600">Libro a prestar:</p>
+                  <p className="font-semibold">{libroAPrestar.titulo}</p>
+                  <p className="text-sm text-gray-500">ISBN: {libroAPrestar.isbn}</p>
+                </div>
+                <div className="space-y-4 pt-2">
+                  <TextField
+                    fullWidth
+                    label="Nombre Completo *"
+                    value={datosPrestamo.nombrePrestatario}
+                    onChange={(e) => setDatosPrestamo({ ...datosPrestamo, nombrePrestatario: e.target.value })}
+                    placeholder="Juan Pérez"
+                  />
+                  <TextField
+                    fullWidth
+                    label="Documento de Identidad *"
+                    value={datosPrestamo.documentoPrestatario}
+                    onChange={(e) => setDatosPrestamo({ ...datosPrestamo, documentoPrestatario: e.target.value })}
+                    placeholder="1234567890"
+                  />
+                  <TextField
+                    fullWidth
+                    label="Teléfono de Contacto *"
+                    value={datosPrestamo.telefonoPrestatario}
+                    onChange={(e) => setDatosPrestamo({ ...datosPrestamo, telefonoPrestatario: e.target.value })}
+                    placeholder="+57 300 123 4567"
+                  />
+                </div>
+              </>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => {
+              setOpenDialogPrestamo(false);
+              setDatosPrestamo({ nombrePrestatario: '', documentoPrestatario: '', telefonoPrestatario: '' });
+            }} disabled={guardandoPrestamo}>Cancelar</Button>
+            <Button variant="contained" onClick={handleConfirmarPrestamo} disabled={guardandoPrestamo}
+              startIcon={guardandoPrestamo ? <CircularProgress size={16} color="inherit" /> : undefined}>
+              {guardandoPrestamo ? 'Registrando...' : 'Confirmar Préstamo'}
             </Button>
           </DialogActions>
         </Dialog>

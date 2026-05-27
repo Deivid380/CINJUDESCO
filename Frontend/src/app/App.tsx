@@ -7,13 +7,14 @@ import { CatalogSection } from './components/CatalogSection';
 import { AdminPanel } from './components/AdminPanel';
 import { ClasesSection } from './components/ClasesSection';
 import { RegistroSection } from './components/RegistroSection';
+import { PrestamosSection } from './components/PrestamosSection';
 import { LibraryFooter } from './components/LibraryFooter';
 import { LoginSection, Usuario } from './components/LoginSection';
 import { Button, Tooltip } from '@mui/material';
 import { ShieldCheck, BookOpen, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 
-type Seccion = 'biblioteca' | 'clases' | 'registro';
+type Seccion = 'biblioteca' | 'clases' | 'registro' | 'prestamos';
 
 export default function App() {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
@@ -55,6 +56,8 @@ export default function App() {
         return esInvitado ? null : <ClasesSection />;
       case 'registro':
         return esInvitado ? null : <RegistroSection />;
+      case 'prestamos':
+        return esInvitado ? null : <PrestamosSection />;
       default:
         return null;
     }
