@@ -9,7 +9,7 @@ import {
   IconButton,
   Alert
 } from '@mui/material';
-import { obtenerLibros, type Libro } from '../services/api';
+import { obtenerLibros, crearLibro, eliminarLibro, prestarLibro, devolverLibro, type Libro} from '../services/api';
 import { toast } from 'sonner';
 
 export function SearchSection() {
@@ -22,6 +22,7 @@ export function SearchSection() {
 
   // 🔥 NUEVO: estados del modal
   const [modalPrestamo, setModalPrestamo] = useState(false);
+  const [guardandoPrestamo, setGuardandoPrestamo] = useState(false);
   const [libroSeleccionado, setLibroSeleccionado] = useState<Libro | null>(null);
   const [datosPrestamo, setDatosPrestamo] = useState({
     nombrePrestatario: '',
@@ -93,36 +94,38 @@ export function SearchSection() {
 
     if (!libroSeleccionado) return;
 
-    try {
-
-      await fetch('https://cinjudesco.onrender.com/prestamos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          isbnLibro: libroSeleccionado.isbn,
-          tituloLibro: libroSeleccionado.titulo,
-          nombrePrestatario: datosPrestamo.nombrePrestatario,
-          documentoPrestatario: datosPrestamo.documentoPrestatario,
-          telefonoPrestatario: datosPrestamo.telefonoPrestatario
-        })
-      });
-
-      toast.success(`"${libroSeleccionado.titulo}" prestado`);
-
-      setModalPrestamo(false);
-      setDatosPrestamo({
-        nombrePrestatario: '',
-        documentoPrestatario: '',
-        telefonoPrestatario: ''
-      });
-
-      cargarLibros();
-      realizarBusqueda();
-
-    } catch (error) {
-      toast.error('Error al prestar');
-    }
-  };
+    setGuardandoPrestamo(true);
+        try {
+          // Enviar datos del préstamo al backend
+          const res = await fetch('https://cinjudesco.onrender.com/prestamos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              isbn: libroSeleccionado.isbn,
+              tituloLibro: libroSeleccionado.titulo,
+              nombrePrestatario: datosPrestamo.nombrePrestatario,
+              documentoPrestatario: datosPrestamo.documentoPrestatario,
+              telefonoPrestatario: datosPrestamo.telefonoPrestatario
+            }),
+          });
+    
+          if (!res.ok) throw new Error();
+    
+          // Marcar libro como prestado
+          await prestarLibro(libroSeleccionado.isbn);
+    
+          toast.success(`Libro prestado a ${datosPrestamo.nombrePrestatario}`);
+          setModalPrestamo(false);
+          setDatosPrestamo({ nombrePrestatario: '', documentoPrestatario: '', telefonoPrestatario: '' });
+          setLibroSeleccionado(null);
+          cargarLibros();
+        } catch (error) {
+          toast.error('Error al registrar el préstamo');
+          console.error(error);
+        } finally {
+          setGuardandoPrestamo(false);
+        }
+      };
 
   // 🔁 DEVOLVER
   const handleDevolver = async (isbn: string, titulo: string) => {
