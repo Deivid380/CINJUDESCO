@@ -23,8 +23,11 @@ export function SearchSection() {
   // 🔥 NUEVO: estados del modal
   const [modalPrestamo, setModalPrestamo] = useState(false);
   const [libroSeleccionado, setLibroSeleccionado] = useState<Libro | null>(null);
-  const [nombrePersona, setNombrePersona] = useState('');
-  const [documentoPersona, setDocumentoPersona] = useState('');
+  const [datosPrestamo, setDatosPrestamo] = useState({
+    nombrePrestatario: '',
+    documentoPrestatario: '',
+    telefonoPrestatario: ''
+  });
 
   useEffect(() => {
     cargarLibros();
@@ -97,16 +100,21 @@ export function SearchSection() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           isbnLibro: libroSeleccionado.isbn,
-          nombrePersona,
-          documentoPersona
+          tituloLibro: libroSeleccionado.titulo,
+          nombrePrestatario: datosPrestamo.nombrePrestatario,
+          documentoPrestatario: datosPrestamo.documentoPrestatario,
+          telefonoPrestatario: datosPrestamo.telefonoPrestatario
         })
       });
 
       toast.success(`"${libroSeleccionado.titulo}" prestado`);
 
       setModalPrestamo(false);
-      setNombrePersona('');
-      setDocumentoPersona('');
+      setDatosPrestamo({
+        nombrePrestatario: '',
+        documentoPrestatario: '',
+        telefonoPrestatario: ''
+      });
 
       cargarLibros();
       realizarBusqueda();
@@ -199,7 +207,7 @@ export function SearchSection() {
                     <p><b>ISBN:</b> {libro.isbn}</p>
 
                     {libro.ubicacion && (
-                      <p><MapPin size={14}/> {libro.ubicacion}</p>
+                      <p><MapPin size={14} /> {libro.ubicacion}</p>
                     )}
 
                     <div className="mt-3">
@@ -246,16 +254,23 @@ export function SearchSection() {
             <TextField
               fullWidth
               label="Nombre (opcional)"
-              value={nombrePersona}
-              onChange={(e) => setNombrePersona(e.target.value)}
+              value={datosPrestamo.nombrePrestatario}
+              onChange={(e) => setDatosPrestamo({ ...datosPrestamo, nombrePrestatario: e.target.value })}
               className="mb-3"
             />
 
             <TextField
               fullWidth
               label="Documento (opcional)"
-              value={documentoPersona}
-              onChange={(e) => setDocumentoPersona(e.target.value)}
+              value={datosPrestamo.documentoPrestatario}
+              onChange={(e) => setDatosPrestamo({ ...datosPrestamo, documentoPrestatario: e.target.value })}
+              className="mb-3"
+            />
+            <TextField
+              fullWidth
+              label="Teléfono (opcional)"
+              value={datosPrestamo.telefonoPrestatario}
+              onChange={(e) => setDatosPrestamo({ ...datosPrestamo, telefonoPrestatario: e.target.value })}
               className="mb-3"
             />
 
