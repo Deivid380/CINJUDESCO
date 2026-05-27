@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 
 const API_URL = 'https://cinjudesco.onrender.com/ninos';
 const MAESTROS_API = 'https://cinjudesco.onrender.com/auth/register';
+const MAESTROS = 'https://cinjudesco.onrender.com/auth';
 
 interface Nino {
   id: number;
@@ -110,6 +111,24 @@ export function RegistroSection() {
       toast.error('No se pudo eliminar el estudiante.');
     }
   };
+
+  const cargarUsuarios = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(MAESTROS);
+      if (!res.ok) throw new Error('Error al cargar');
+      const data: Maestro[] = await res.json();
+      setMaestros(data);
+    } catch {
+      toast.error('No se pudo conectar al servidor. Verifica que el backend esté activo.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    cargarUsuarios();
+  }, []);
 
   const handleRegistrarMaestro = async () => {
     if (!nuevoMaestro.nombre || !nuevoMaestro.correo || !nuevoMaestro.password) {

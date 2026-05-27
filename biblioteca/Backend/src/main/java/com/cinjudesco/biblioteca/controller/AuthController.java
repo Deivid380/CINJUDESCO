@@ -1,7 +1,11 @@
 package com.cinjudesco.biblioteca.controller;
 
 import com.cinjudesco.biblioteca.model.AuthUser;
+import com.cinjudesco.biblioteca.model.Nino;
 import com.cinjudesco.biblioteca.repository.AuthUserRepository;
+
+import java.util.List;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,6 +32,11 @@ public class AuthController {
         }
 
         return ResponseEntity.ok(repo.save(user));
+    }
+
+    @GetMapping
+    public List<AuthUser> listar() {
+        return repo.findAll();
     }
 
     // LOGIN
