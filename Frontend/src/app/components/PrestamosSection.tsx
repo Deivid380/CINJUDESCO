@@ -12,9 +12,10 @@ interface Prestamo {
   id: number;
   isbn: string;
   tituloLibro: string;
-  nombrePrestatario: string;
-  documentoPrestatario: string;
-  telefonoPrestatario: string;
+  numeroCarnet: string;
+  nombrePrestatario?: string;
+  numeroIdentidad?: string;
+  telefono?: string;
   fechaPrestamo: string;
   diasTranscurridos?: number;
 }
@@ -131,8 +132,9 @@ export function PrestamosSection() {
                   <TableRow>
                     <TableCell><strong>Libro</strong></TableCell>
                     <TableCell><strong>ISBN</strong></TableCell>
+                    <TableCell><strong>N° Carnet</strong></TableCell>
                     <TableCell><strong>Prestatario</strong></TableCell>
-                    <TableCell><strong>Documento</strong></TableCell>
+                    <TableCell><strong>Identidad</strong></TableCell>
                     <TableCell><strong>Teléfono</strong></TableCell>
                     <TableCell><strong>Fecha Préstamo</strong></TableCell>
                     <TableCell><strong>Días</strong></TableCell>
@@ -146,9 +148,12 @@ export function PrestamosSection() {
                       <TableRow key={p.id} className={vencido ? 'bg-orange-50' : ''}>
                         <TableCell className="font-medium">{p.tituloLibro}</TableCell>
                         <TableCell className="text-sm text-gray-500">{p.isbn}</TableCell>
-                        <TableCell>{p.nombrePrestatario}</TableCell>
-                        <TableCell className="text-sm text-gray-500">{p.documentoPrestatario}</TableCell>
-                        <TableCell className="text-sm text-gray-500">{p.telefonoPrestatario}</TableCell>
+                        <TableCell>
+                          <Chip label={p.numeroCarnet} size="small" variant="outlined" color="primary" />
+                        </TableCell>
+                        <TableCell>{p.nombrePrestatario || '—'}</TableCell>
+                        <TableCell className="text-sm text-gray-500">{p.numeroIdentidad || '—'}</TableCell>
+                        <TableCell className="text-sm text-gray-500">{p.telefono || '—'}</TableCell>
                         <TableCell className="text-sm">
                           {new Date(p.fechaPrestamo).toLocaleDateString('es-ES')}
                         </TableCell>

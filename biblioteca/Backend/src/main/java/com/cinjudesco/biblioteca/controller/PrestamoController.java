@@ -1,10 +1,9 @@
 package com.cinjudesco.biblioteca.controller;
 
-import com.cinjudesco.biblioteca.model.Libro;
-import com.cinjudesco.biblioteca.model.Prestamo;
-import com.cinjudesco.biblioteca.repository.LibroRepository;
-import com.cinjudesco.biblioteca.repository.PrestamoRepository;
+import com.cinjudesco.biblioteca.model.*;
+import com.cinjudesco.biblioteca.repository.*;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -15,67 +14,54 @@ import java.util.List;
 @CrossOrigin(origins = "*")
 public class PrestamoController {
 
-    private final PrestamoRepository repo;
-    private final LibroRepository libroRepo;
+    private final PrestamoRepository prestamoRepo;
+    private final CarnetRepository carnetRepo;
 
     public PrestamoController(
-            PrestamoRepository repo,
-            LibroRepository libroRepo
+            PrestamoRepository prestamoRepo,
+            CarnetRepository carnetRepo
     ) {
-        this.repo = repo;
-        this.libroRepo = libroRepo;
+        this.prestamoRepo = prestamoRepo;
+        this.carnetRepo = carnetRepo;
     }
-
-    // =========================
-    // REGISTRAR PRESTAMO
-    // =========================
 
     @PostMapping
-    public Prestamo prestar(@RequestBody Prestamo prestamo) {
+    public ResponseEntity<?> crear(@RequestBody PrestamoRequest request) {
 
-        prestamo.setFechaPrestamo(LocalDate.now());
+        Carnet carnet = carnetRepo.findByNumeroCarnet(request.getNumeroCarnet());
 
-        // marcar libro como no disponible
-        Libro libro = libroRepo.findById(prestamo.getIsbn())
-                .orElseThrow();
+        if (carnet == null) {
+            return ResponseEntity.badRequest()
+                    .body("Carnet no encontrado");
+        }
 
-        libro.setDisponible(false);
+        Prestamo prestamo = new Prestamo();
 
-        libroRepo.save(libro);
+        prestamo.setIsbn(request.getIsbn());
+        prestamo.setTituloLibro(request.getTituloLibro());
+        prestamo.setCarnet(carnet);
 
-        return repo.save(prestamo);
+        return ResponseEntity.ok(
+                prestamoRepo.save(prestamo)
+        );
     }
-
-    // =========================
-    // LISTAR PRESTAMOS ACTIVOS
-    // =========================
 
     @GetMapping
-    public List<Prestamo> listarActivos() {
-
-        return repo.findByFechaDevolucionIsNull();
+    public List<Prestamo> listar() {
+        return prestamoRepo.findByDevueltoFalse();
     }
 
-    // =========================
-    // DEVOLVER LIBRO
-    // =========================
+    @PutMapping("/devolver/{id}")
+    public ResponseEntity<?> devolver(@PathVariable Long id) {
 
-    @PutMapping("/devolver/{isbn}")
-    public Prestamo devolver(@PathVariable String isbn) {
-
-        Prestamo prestamo = repo
-                .findByIsbnAndFechaDevolucionIsNull(isbn)
+        Prestamo prestamo = prestamoRepo.findById(id)
                 .orElseThrow();
 
+        prestamo.setDevuelto(true);
         prestamo.setFechaDevolucion(LocalDate.now());
 
-        Libro libro = libroRepo.findById(isbn)
-                .orElseThrow();
-
-        libro.setDisponible(true);
-
-        libroRepo.save(libro);
-
-        return repo.save(prestamo);
+        return ResponseEntity.ok(
+                prestamoRepo.save(prestamo)
+        );
     }
 }

@@ -30,12 +30,18 @@ export function AdminPanel() {
   const [openDialogPrestamo, setOpenDialogPrestamo] = useState(false);
   const [libroAPrestar, setLibroAPrestar] = useState<Libro | null>(null);
   const [guardandoPrestamo, setGuardandoPrestamo] = useState(false);
+  const [buscandoCarnet, setBuscandoCarnet] = useState(false);
+  const [carnetEncontrado, setCarnetEncontrado] = useState(false);
   const [estanteria, setEstanteria] = useState('');
   const [fila, setFila] = useState('');
-  const [datosPrestamo, setDatosPrestamo] = useState({
-    nombrePrestatario: '',
-    documentoPrestatario: '',
-    telefonoPrestatario: ''
+  const [numeroCarnet, setNumeroCarnet] = useState('');
+  const [datosCarnet, setDatosCarnet] = useState({
+    numeroCarnet: '',
+    nombre: '',
+    numeroIdentidad: '',
+    telefono: '',
+    fechaNacimiento: '',
+    direccion: ''
   });
   const [nuevoLibro, setNuevoLibro] = useState<Libro>({
     isbn: '',
@@ -121,38 +127,113 @@ export function AdminPanel() {
   const handlePrestarLibro = (libro: Libro) => {
     setLibroAPrestar(libro);
     setOpenDialogPrestamo(true);
+    setNumeroCarnet('');
+    setCarnetEncontrado(false);
+    setDatosCarnet({
+      numeroCarnet: '',
+      nombre: '',
+      numeroIdentidad: '',
+      telefono: '',
+      fechaNacimiento: '',
+      direccion: ''
+    });
+  };
+
+  const buscarCarnet = async () => {
+    if (!numeroCarnet.trim()) {
+      toast.error('Ingresa un número de carnet');
+      return;
+    }
+
+    setBuscandoCarnet(true);
+    try {
+      const res = await fetch(`https://cinjudesco.onrender.com/carnets/${numeroCarnet}`);
+
+      if (res.ok) {
+        const carnet = await res.json();
+        setDatosCarnet({
+          numeroCarnet: carnet.numeroCarnet,
+          nombre: carnet.nombre,
+          numeroIdentidad: carnet.numeroIdentidad,
+          telefono: carnet.telefono,
+          fechaNacimiento: carnet.fechaNacimiento,
+          direccion: carnet.direccion
+        });
+        setCarnetEncontrado(true);
+        toast.success('Carnet encontrado');
+      } else if (res.status === 404) {
+        setDatosCarnet({
+          numeroCarnet: numeroCarnet,
+          nombre: '',
+          numeroIdentidad: '',
+          telefono: '',
+          fechaNacimiento: '',
+          direccion: ''
+        });
+        setCarnetEncontrado(false);
+        toast.info('Carnet no encontrado. Completa los datos para crear uno nuevo.');
+      } else {
+        throw new Error();
+      }
+    } catch {
+      toast.error('Error al buscar el carnet');
+    } finally {
+      setBuscandoCarnet(false);
+    }
   };
 
   const handleConfirmarPrestamo = async () => {
     if (!libroAPrestar) return;
-    if (!datosPrestamo.nombrePrestatario || !datosPrestamo.documentoPrestatario || !datosPrestamo.telefonoPrestatario) {
-      toast.error('Todos los campos son obligatorios');
+    if (!datosCarnet.numeroCarnet || !datosCarnet.nombre || !datosCarnet.numeroIdentidad || !datosCarnet.telefono) {
+      toast.error('Completa todos los campos obligatorios (número de carnet, nombre, identidad y teléfono)');
       return;
     }
 
     setGuardandoPrestamo(true);
     try {
-      // Enviar datos del préstamo al backend
-      const res = await fetch('https://cinjudesco.onrender.com/prestamos', {
+      // Si el carnet no existe, crearlo primero
+      if (!carnetEncontrado) {
+        const resCarnet = await fetch('https://cinjudesco.onrender.com/carnets', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(datosCarnet),
+        });
+
+        if (!resCarnet.ok) {
+          toast.error('Error al crear el carnet');
+          return;
+        }
+        toast.success('Carnet creado exitosamente');
+      }
+
+      // Registrar préstamo
+      const resPrestamo = await fetch('https://cinjudesco.onrender.com/prestamos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           isbn: libroAPrestar.isbn,
           tituloLibro: libroAPrestar.titulo,
-          nombrePrestatario: datosPrestamo.nombrePrestatario,
-          documentoPrestatario: datosPrestamo.documentoPrestatario,
-          telefonoPrestatario: datosPrestamo.telefonoPrestatario
+          numeroCarnet: datosCarnet.numeroCarnet
         }),
       });
 
-      if (!res.ok) throw new Error();
+      if (!resPrestamo.ok) throw new Error();
 
       // Marcar libro como prestado
       await prestarLibro(libroAPrestar.isbn);
 
-      toast.success(`Libro prestado a ${datosPrestamo.nombrePrestatario}`);
+      toast.success(`Libro prestado a ${datosCarnet.nombre}`);
       setOpenDialogPrestamo(false);
-      setDatosPrestamo({ nombrePrestatario: '', documentoPrestatario: '', telefonoPrestatario: '' });
+      setNumeroCarnet('');
+      setCarnetEncontrado(false);
+      setDatosCarnet({
+        numeroCarnet: '',
+        nombre: '',
+        numeroIdentidad: '',
+        telefono: '',
+        fechaNacimiento: '',
+        direccion: ''
+      });
       setLibroAPrestar(null);
       cargarLibros();
     } catch (error) {
@@ -417,28 +498,83 @@ export function AdminPanel() {
                   <p className="font-semibold">{libroAPrestar.titulo}</p>
                   <p className="text-sm text-gray-500">ISBN: {libroAPrestar.isbn}</p>
                 </div>
+
                 <div className="space-y-4 pt-2">
-                  <TextField
-                    fullWidth
-                    label="Nombre Completo *"
-                    value={datosPrestamo.nombrePrestatario}
-                    onChange={(e) => setDatosPrestamo({ ...datosPrestamo, nombrePrestatario: e.target.value })}
-                    placeholder="Juan Pérez"
-                  />
-                  <TextField
-                    fullWidth
-                    label="Documento de Identidad *"
-                    value={datosPrestamo.documentoPrestatario}
-                    onChange={(e) => setDatosPrestamo({ ...datosPrestamo, documentoPrestatario: e.target.value })}
-                    placeholder="1234567890"
-                  />
-                  <TextField
-                    fullWidth
-                    label="Teléfono de Contacto *"
-                    value={datosPrestamo.telefonoPrestatario}
-                    onChange={(e) => setDatosPrestamo({ ...datosPrestamo, telefonoPrestatario: e.target.value })}
-                    placeholder="+57 300 123 4567"
-                  />
+                  {/* Buscar carnet */}
+                  <div className="flex gap-2">
+                    <TextField
+                      fullWidth
+                      label="Número de Carnet *"
+                      value={numeroCarnet}
+                      onChange={(e) => setNumeroCarnet(e.target.value)}
+                      placeholder="C-001"
+                      disabled={buscandoCarnet || carnetEncontrado}
+                    />
+                    {!carnetEncontrado && (
+                      <Button
+                        variant="outlined"
+                        onClick={buscarCarnet}
+                        disabled={buscandoCarnet || !numeroCarnet.trim()}
+                        sx={{ minWidth: '100px' }}
+                      >
+                        {buscandoCarnet ? <CircularProgress size={20} /> : 'Buscar'}
+                      </Button>
+                    )}
+                  </div>
+
+                  {(numeroCarnet && !buscandoCarnet) && (
+                    <>
+                      {carnetEncontrado && (
+                        <div className="p-3 bg-green-50 rounded border border-green-200">
+                          <p className="text-sm text-green-800 font-medium">✓ Carnet encontrado</p>
+                        </div>
+                      )}
+
+                      <TextField
+                        fullWidth
+                        label="Nombre Completo *"
+                        value={datosCarnet.nombre}
+                        onChange={(e) => setDatosCarnet({ ...datosCarnet, nombre: e.target.value })}
+                        placeholder="Juan Pérez"
+                        disabled={carnetEncontrado}
+                      />
+                      <TextField
+                        fullWidth
+                        label="Número de Identidad *"
+                        value={datosCarnet.numeroIdentidad}
+                        onChange={(e) => setDatosCarnet({ ...datosCarnet, numeroIdentidad: e.target.value })}
+                        placeholder="1234567890"
+                        disabled={carnetEncontrado}
+                      />
+                      <TextField
+                        fullWidth
+                        label="Teléfono *"
+                        value={datosCarnet.telefono}
+                        onChange={(e) => setDatosCarnet({ ...datosCarnet, telefono: e.target.value })}
+                        placeholder="+57 300 123 4567"
+                        disabled={carnetEncontrado}
+                      />
+                      <TextField
+                        fullWidth
+                        label="Fecha de Nacimiento"
+                        type="date"
+                        value={datosCarnet.fechaNacimiento}
+                        onChange={(e) => setDatosCarnet({ ...datosCarnet, fechaNacimiento: e.target.value })}
+                        InputLabelProps={{ shrink: true }}
+                        disabled={carnetEncontrado}
+                      />
+                      <TextField
+                        fullWidth
+                        label="Dirección"
+                        multiline
+                        rows={2}
+                        value={datosCarnet.direccion}
+                        onChange={(e) => setDatosCarnet({ ...datosCarnet, direccion: e.target.value })}
+                        placeholder="Calle 123 #45-67"
+                        disabled={carnetEncontrado}
+                      />
+                    </>
+                  )}
                 </div>
               </>
             )}
@@ -446,10 +582,23 @@ export function AdminPanel() {
           <DialogActions>
             <Button onClick={() => {
               setOpenDialogPrestamo(false);
-              setDatosPrestamo({ nombrePrestatario: '', documentoPrestatario: '', telefonoPrestatario: '' });
+              setNumeroCarnet('');
+              setCarnetEncontrado(false);
+              setDatosCarnet({
+                numeroCarnet: '',
+                nombre: '',
+                numeroIdentidad: '',
+                telefono: '',
+                fechaNacimiento: '',
+                direccion: ''
+              });
             }} disabled={guardandoPrestamo}>Cancelar</Button>
-            <Button variant="contained" onClick={handleConfirmarPrestamo} disabled={guardandoPrestamo}
-              startIcon={guardandoPrestamo ? <CircularProgress size={16} color="inherit" /> : undefined}>
+            <Button
+              variant="contained"
+              onClick={handleConfirmarPrestamo}
+              disabled={guardandoPrestamo || !numeroCarnet || !datosCarnet.nombre}
+              startIcon={guardandoPrestamo ? <CircularProgress size={16} color="inherit" /> : undefined}
+            >
               {guardandoPrestamo ? 'Registrando...' : 'Confirmar Préstamo'}
             </Button>
           </DialogActions>
