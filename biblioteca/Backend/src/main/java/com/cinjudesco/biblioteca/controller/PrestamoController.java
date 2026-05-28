@@ -5,6 +5,7 @@ import com.cinjudesco.biblioteca.repository.*;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.cinjudesco.biblioteca.dto.PrestamoRequest;
 
 import java.time.LocalDate;
 import java.util.List;
