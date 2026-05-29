@@ -3,6 +3,9 @@ package com.cinjudesco.biblioteca.controller;
 import com.cinjudesco.biblioteca.model.*;
 import com.cinjudesco.biblioteca.repository.*;
 
+import main.java.com.cinjudesco.biblioteca.model.Carnet;
+import main.java.com.cinjudesco.biblioteca.repository.CarnetRepository;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.cinjudesco.biblioteca.dto.PrestamoRequest;
@@ -20,8 +23,7 @@ public class PrestamoController {
 
     public PrestamoController(
             PrestamoRepository prestamoRepo,
-            CarnetRepository carnetRepo
-    ) {
+            CarnetRepository carnetRepo) {
         this.prestamoRepo = prestamoRepo;
         this.carnetRepo = carnetRepo;
     }
@@ -43,8 +45,7 @@ public class PrestamoController {
         prestamo.setCarnet(carnet);
 
         return ResponseEntity.ok(
-                prestamoRepo.save(prestamo)
-        );
+                prestamoRepo.save(prestamo));
     }
 
     @GetMapping
@@ -62,7 +63,6 @@ public class PrestamoController {
         prestamo.setFechaDevolucion(LocalDate.now());
 
         return ResponseEntity.ok(
-                prestamoRepo.save(prestamo)
-        );
+                prestamoRepo.save(prestamo));
     }
 }

@@ -34,38 +34,28 @@ export function PrestamosSection() {
   const cargarPrestamos = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${BASE_API}/prestamos`);
-      if (!res.ok) throw new Error();
-      const data: Prestamo[] = await res.json();
+      // Cargar préstamos y carnets en paralelo
+      const [resPrestamos, resCarnets] = await Promise.all([
+        fetch(`${BASE_API}/prestamos`),
+        fetch(`${BASE_API}/carnets`),
+      ]);
+
+      if (!resPrestamos.ok) throw new Error('Error al cargar préstamos');
+      const data: Prestamo[] = await resPrestamos.json();
+
+      // Construir mapa de carnets por numeroCarnet
+      const carnetMap: Record<string, Carnet> = {};
+      if (resCarnets.ok) {
+        const carnets: Carnet[] = await resCarnets.json();
+        carnets.forEach(c => { carnetMap[c.numeroCarnet] = c; });
+      }
 
       const hoy = new Date();
-      const prestamosConDias = data.map(p => {
+      const prestamosEnriquecidos = data.map(p => {
         const fechaPrestamo = new Date(p.fechaPrestamo);
         const dias = Math.floor((hoy.getTime() - fechaPrestamo.getTime()) / (1000 * 60 * 60 * 24));
-        return { ...p, diasTranscurridos: dias };
+        return { ...p, diasTranscurridos: dias, carnet: carnetMap[p.numeroCarnet] };
       });
-
-      // Enriquecer con datos de carnets en paralelo
-      const numerosCarnet = [...new Set(prestamosConDias.map(p => p.numeroCarnet).filter(Boolean))];
-      const carnetMap: Record<string, Carnet> = {};
-
-      await Promise.allSettled(
-        numerosCarnet.map(async (num) => {
-          try {
-            const r = await fetch(`${BASE_API}/carnets/${num}`);
-            if (r.ok) {
-              carnetMap[num] = await r.json();
-            }
-          } catch {
-            // carnet no encontrado, continuar
-          }
-        })
-      );
-
-      const prestamosEnriquecidos = prestamosConDias.map(p => ({
-        ...p,
-        carnet: carnetMap[p.numeroCarnet],
-      }));
 
       setPrestamos(prestamosEnriquecidos);
     } catch {

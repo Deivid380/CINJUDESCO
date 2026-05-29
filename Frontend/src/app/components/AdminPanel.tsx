@@ -246,19 +246,19 @@ export function AdminPanel() {
 
   const handleDevolverLibro = async (isbn: string) => {
     try {
-      // Buscar el préstamo activo para este ISBN y eliminarlo
+      // Buscar el préstamo activo y marcarlo como devuelto (devuelto=true + fechaDevolucion)
       const resPrestamos = await fetch('https://cinjudesco.onrender.com/prestamos');
       if (resPrestamos.ok) {
         const prestamos: { id: number; isbn: string }[] = await resPrestamos.json();
         const prestamoActivo = prestamos.find(p => p.isbn === isbn);
         if (prestamoActivo) {
-          await fetch(`https://cinjudesco.onrender.com/prestamos/${prestamoActivo.id}`, {
-            method: 'DELETE',
+          await fetch(`https://cinjudesco.onrender.com/prestamos/devolver/${prestamoActivo.id}`, {
+            method: 'PUT',
           });
         }
       }
 
-      // Marcar el libro como devuelto/disponible
+      // Marcar el libro como disponible
       await devolverLibro(isbn);
       toast.success('Libro devuelto exitosamente');
       cargarLibros();
