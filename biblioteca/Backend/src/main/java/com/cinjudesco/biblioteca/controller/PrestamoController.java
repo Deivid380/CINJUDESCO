@@ -3,9 +3,6 @@ package com.cinjudesco.biblioteca.controller;
 import com.cinjudesco.biblioteca.model.*;
 import com.cinjudesco.biblioteca.repository.*;
 
-import main.java.com.cinjudesco.biblioteca.model.Carnet;
-import main.java.com.cinjudesco.biblioteca.repository.CarnetRepository;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.cinjudesco.biblioteca.dto.PrestamoRequest;
