@@ -3,21 +3,28 @@ import {
   Card, CardContent, CircularProgress, Chip, IconButton,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Alert
 } from '@mui/material';
-import { BookOpen, RefreshCw, AlertCircle, CheckCircle } from 'lucide-react';
+import { BookOpen, RefreshCw, AlertCircle, CheckCircle, User } from 'lucide-react';
 import { toast } from 'sonner';
 
-const PRESTAMOS_API = 'https://cinjudesco.onrender.com/prestamos';
+const BASE_API = 'https://cinjudesco.onrender.com';
+
+interface Carnet {
+  numeroCarnet: string;
+  nombre: string;
+  numeroIdentidad: string;
+  telefono: string;
+  fechaNacimiento?: string;
+  direccion?: string;
+}
 
 interface Prestamo {
   id: number;
   isbn: string;
   tituloLibro: string;
   numeroCarnet: string;
-  nombrePrestatario?: string;
-  numeroIdentidad?: string;
-  telefono?: string;
   fechaPrestamo: string;
   diasTranscurridos?: number;
+  carnet?: Carnet;
 }
 
 export function PrestamosSection() {
@@ -27,11 +34,10 @@ export function PrestamosSection() {
   const cargarPrestamos = async () => {
     setLoading(true);
     try {
-      const res = await fetch(PRESTAMOS_API);
+      const res = await fetch(`${BASE_API}/prestamos`);
       if (!res.ok) throw new Error();
       const data: Prestamo[] = await res.json();
 
-      // Calcular días transcurridos
       const hoy = new Date();
       const prestamosConDias = data.map(p => {
         const fechaPrestamo = new Date(p.fechaPrestamo);
@@ -39,7 +45,29 @@ export function PrestamosSection() {
         return { ...p, diasTranscurridos: dias };
       });
 
-      setPrestamos(prestamosConDias);
+      // Enriquecer con datos de carnets en paralelo
+      const numerosCarnet = [...new Set(prestamosConDias.map(p => p.numeroCarnet).filter(Boolean))];
+      const carnetMap: Record<string, Carnet> = {};
+
+      await Promise.allSettled(
+        numerosCarnet.map(async (num) => {
+          try {
+            const r = await fetch(`${BASE_API}/carnets/${num}`);
+            if (r.ok) {
+              carnetMap[num] = await r.json();
+            }
+          } catch {
+            // carnet no encontrado, continuar
+          }
+        })
+      );
+
+      const prestamosEnriquecidos = prestamosConDias.map(p => ({
+        ...p,
+        carnet: carnetMap[p.numeroCarnet],
+      }));
+
+      setPrestamos(prestamosEnriquecidos);
     } catch {
       toast.error('No se pudo cargar los préstamos.');
     } finally {
@@ -66,7 +94,6 @@ export function PrestamosSection() {
           </IconButton>
         </div>
 
-        {/* Alertas de préstamos vencidos */}
         {prestamosVencidos.length > 0 && (
           <Alert severity="warning" className="mb-6" icon={<AlertCircle className="w-5 h-5" />}>
             <strong>{prestamosVencidos.length} préstamo(s)</strong> han superado los 15 días
@@ -110,7 +137,7 @@ export function PrestamosSection() {
           </Card>
         </div>
 
-        {/* Tabla de préstamos */}
+        {/* Tabla */}
         <div className="bg-white rounded-lg shadow">
           <div className="p-6 border-b">
             <h3 className="text-xl font-semibold">Listado de Préstamos</h3>
@@ -151,9 +178,22 @@ export function PrestamosSection() {
                         <TableCell>
                           <Chip label={p.numeroCarnet} size="small" variant="outlined" color="primary" />
                         </TableCell>
-                        <TableCell>{p.nombrePrestatario || '—'}</TableCell>
-                        <TableCell className="text-sm text-gray-500">{p.numeroIdentidad || '—'}</TableCell>
-                        <TableCell className="text-sm text-gray-500">{p.telefono || '—'}</TableCell>
+                        <TableCell>
+                          {p.carnet ? (
+                            <div className="flex items-center gap-1">
+                              <User className="w-3 h-3 text-gray-400" />
+                              <span className="font-medium">{p.carnet.nombre}</span>
+                            </div>
+                          ) : (
+                            <span className="text-gray-400 text-sm">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm text-gray-500">
+                          {p.carnet?.numeroIdentidad || '—'}
+                        </TableCell>
+                        <TableCell className="text-sm text-gray-500">
+                          {p.carnet?.telefono || '—'}
+                        </TableCell>
                         <TableCell className="text-sm">
                           {new Date(p.fechaPrestamo).toLocaleDateString('es-ES')}
                         </TableCell>

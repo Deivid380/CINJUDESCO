@@ -215,20 +215,27 @@ export function SearchSection() {
 
   // 🔁 DEVOLVER
   const handleDevolver = async (isbn: string, titulo: string) => {
-
     try {
+      // Buscar el préstamo activo para este ISBN y eliminarlo
+      const resPrestamos = await fetch('https://cinjudesco.onrender.com/prestamos');
+      if (resPrestamos.ok) {
+        const prestamos: { id: number; isbn: string }[] = await resPrestamos.json();
+        const prestamoActivo = prestamos.find(p => p.isbn === isbn);
+        if (prestamoActivo) {
+          await fetch(`https://cinjudesco.onrender.com/prestamos/${prestamoActivo.id}`, {
+            method: 'DELETE',
+          });
+        }
+      }
 
-      await fetch(`https://cinjudesco.onrender.com/prestamos/devolver/${isbn}`, {
-        method: 'PUT'
-      });
+      // Marcar el libro como disponible
+      await devolverLibro(isbn);
 
-      toast.success(`"${titulo}" devuelto`);
-
+      toast.success(`"${titulo}" devuelto exitosamente`);
       cargarLibros();
       realizarBusqueda();
-
     } catch (error) {
-      toast.error('Error al devolver');
+      toast.error('Error al devolver el libro');
     }
   };
 
