@@ -3,28 +3,24 @@ import {
   Card, CardContent, CircularProgress, Chip, IconButton,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Alert
 } from '@mui/material';
-import { BookOpen, RefreshCw, AlertCircle, CheckCircle, User } from 'lucide-react';
+import { BookOpen, RefreshCw, AlertCircle, CheckCircle, CreditCard, User, Phone, Hash } from 'lucide-react';
 import { toast } from 'sonner';
 
-const BASE_API = 'https://cinjudesco.onrender.com';
+const PRESTAMOS_API = 'https://cinjudesco.onrender.com/prestamos';
 
-interface Carnet {
-  numeroCarnet: string;
-  nombre: string;
-  numeroIdentidad: string;
-  telefono: string;
-  fechaNacimiento?: string;
-  direccion?: string;
-}
-
+// Refleja exactamente el modelo Prestamo del backend
 interface Prestamo {
   id: number;
   isbn: string;
   tituloLibro: string;
+  fechaPrestamo: string;       // LocalDate → "YYYY-MM-DD"
+  fechaDevolucion: string | null;
+  devuelto: boolean;
   numeroCarnet: string;
-  fechaPrestamo: string;
+  nombrePrestatario: string;
+  numeroIdentidad: string;
+  telefono: string;
   diasTranscurridos?: number;
-  carnet?: Carnet;
 }
 
 export function PrestamosSection() {
@@ -34,30 +30,22 @@ export function PrestamosSection() {
   const cargarPrestamos = async () => {
     setLoading(true);
     try {
-      // Cargar préstamos y carnets en paralelo
-      const [resPrestamos, resCarnets] = await Promise.all([
-        fetch(`${BASE_API}/prestamos`),
-        fetch(`${BASE_API}/carnets`),
-      ]);
+      // GET /prestamos devuelve solo los activos (devuelto = false)
+      const res = await fetch(PRESTAMOS_API);
+      if (!res.ok) throw new Error();
 
-      if (!resPrestamos.ok) throw new Error('Error al cargar préstamos');
-      const data: Prestamo[] = await resPrestamos.json();
-
-      // Construir mapa de carnets por numeroCarnet
-      const carnetMap: Record<string, Carnet> = {};
-      if (resCarnets.ok) {
-        const carnets: Carnet[] = await resCarnets.json();
-        carnets.forEach(c => { carnetMap[c.numeroCarnet] = c; });
-      }
+      const data: Prestamo[] = await res.json();
 
       const hoy = new Date();
-      const prestamosEnriquecidos = data.map(p => {
+      const enriquecidos = data.map(p => {
         const fechaPrestamo = new Date(p.fechaPrestamo);
-        const dias = Math.floor((hoy.getTime() - fechaPrestamo.getTime()) / (1000 * 60 * 60 * 24));
-        return { ...p, diasTranscurridos: dias, carnet: carnetMap[p.numeroCarnet] };
+        const dias = Math.floor(
+          (hoy.getTime() - fechaPrestamo.getTime()) / (1000 * 60 * 60 * 24)
+        );
+        return { ...p, diasTranscurridos: dias };
       });
 
-      setPrestamos(prestamosEnriquecidos);
+      setPrestamos(enriquecidos);
     } catch {
       toast.error('No se pudo cargar los préstamos.');
     } finally {
@@ -74,19 +62,22 @@ export function PrestamosSection() {
   return (
     <section className="py-12 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        {/* Encabezado */}
         <div className="flex items-center justify-between mb-8">
           <div>
             <h2 className="text-3xl font-bold mb-2">Préstamos Activos</h2>
-            <p className="text-gray-600">Control de libros prestados y seguimiento</p>
+            <p className="text-gray-600">Control de libros prestados y seguimiento de devoluciones</p>
           </div>
           <IconButton onClick={cargarPrestamos} disabled={loading} title="Recargar">
             <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
           </IconButton>
         </div>
 
+        {/* Alerta de vencidos */}
         {prestamosVencidos.length > 0 && (
           <Alert severity="warning" className="mb-6" icon={<AlertCircle className="w-5 h-5" />}>
-            <strong>{prestamosVencidos.length} préstamo(s)</strong> han superado los 15 días
+            <strong>{prestamosVencidos.length} préstamo(s)</strong> han superado los 15 días sin devolución
           </Alert>
         )}
 
@@ -96,7 +87,7 @@ export function PrestamosSection() {
             <CardContent>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-600 text-sm">Total Préstamos</p>
+                  <p className="text-gray-600 text-sm">Total Activos</p>
                   <p className="text-3xl font-bold">{prestamos.length}</p>
                 </div>
                 <BookOpen className="w-12 h-12 text-blue-600" />
@@ -107,8 +98,10 @@ export function PrestamosSection() {
             <CardContent>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-600 text-sm">Préstamos a Tiempo</p>
-                  <p className="text-3xl font-bold text-green-600">{prestamos.length - prestamosVencidos.length}</p>
+                  <p className="text-gray-600 text-sm">A Tiempo</p>
+                  <p className="text-3xl font-bold text-green-600">
+                    {prestamos.length - prestamosVencidos.length}
+                  </p>
                 </div>
                 <CheckCircle className="w-12 h-12 text-green-600" />
               </div>
@@ -118,7 +111,7 @@ export function PrestamosSection() {
             <CardContent>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-600 text-sm">Préstamos Vencidos</p>
+                  <p className="text-gray-600 text-sm">Vencidos (+15 días)</p>
                   <p className="text-3xl font-bold text-orange-600">{prestamosVencidos.length}</p>
                 </div>
                 <AlertCircle className="w-12 h-12 text-orange-600" />
@@ -146,13 +139,29 @@ export function PrestamosSection() {
             <TableContainer component={Paper} elevation={0}>
               <Table>
                 <TableHead>
-                  <TableRow>
+                  <TableRow sx={{ backgroundColor: '#f9fafb' }}>
                     <TableCell><strong>Libro</strong></TableCell>
                     <TableCell><strong>ISBN</strong></TableCell>
-                    <TableCell><strong>N° Carnet</strong></TableCell>
-                    <TableCell><strong>Prestatario</strong></TableCell>
-                    <TableCell><strong>Identidad</strong></TableCell>
-                    <TableCell><strong>Teléfono</strong></TableCell>
+                    <TableCell><strong>
+                      <div className="flex items-center gap-1">
+                        <CreditCard className="w-4 h-4" /> N° Carnet
+                      </div>
+                    </strong></TableCell>
+                    <TableCell><strong>
+                      <div className="flex items-center gap-1">
+                        <User className="w-4 h-4" /> Prestatario
+                      </div>
+                    </strong></TableCell>
+                    <TableCell><strong>
+                      <div className="flex items-center gap-1">
+                        <Hash className="w-4 h-4" /> Identidad
+                      </div>
+                    </strong></TableCell>
+                    <TableCell><strong>
+                      <div className="flex items-center gap-1">
+                        <Phone className="w-4 h-4" /> Teléfono
+                      </div>
+                    </strong></TableCell>
                     <TableCell><strong>Fecha Préstamo</strong></TableCell>
                     <TableCell><strong>Días</strong></TableCell>
                     <TableCell><strong>Estado</strong></TableCell>
@@ -162,41 +171,65 @@ export function PrestamosSection() {
                   {prestamos.map((p) => {
                     const vencido = (p.diasTranscurridos ?? 0) > 15;
                     return (
-                      <TableRow key={p.id} className={vencido ? 'bg-orange-50' : ''}>
-                        <TableCell className="font-medium">{p.tituloLibro}</TableCell>
-                        <TableCell className="text-sm text-gray-500">{p.isbn}</TableCell>
+                      <TableRow
+                        key={p.id}
+                        sx={{ backgroundColor: vencido ? '#fff7ed' : 'inherit' }}
+                      >
                         <TableCell>
-                          <Chip label={p.numeroCarnet} size="small" variant="outlined" color="primary" />
-                        </TableCell>
-                        <TableCell>
-                          {p.carnet ? (
-                            <div className="flex items-center gap-1">
-                              <User className="w-3 h-3 text-gray-400" />
-                              <span className="font-medium">{p.carnet.nombre}</span>
-                            </div>
-                          ) : (
-                            <span className="text-gray-400 text-sm">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-sm text-gray-500">
-                          {p.carnet?.numeroIdentidad || '—'}
-                        </TableCell>
-                        <TableCell className="text-sm text-gray-500">
-                          {p.carnet?.telefono || '—'}
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {new Date(p.fechaPrestamo).toLocaleDateString('es-ES')}
+                          <p className="font-medium text-gray-900">{p.tituloLibro}</p>
                         </TableCell>
                         <TableCell>
-                          <span className={`font-semibold ${vencido ? 'text-orange-600' : 'text-gray-700'}`}>
-                            {p.diasTranscurridos} días
+                          <span className="text-sm text-gray-500">{p.isbn}</span>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={p.numeroCarnet}
+                            size="small"
+                            variant="outlined"
+                            color="primary"
+                            icon={<CreditCard className="w-3 h-3" />}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-medium text-gray-800">
+                            {p.nombrePrestatario || '—'}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm text-gray-500">
+                            {p.numeroIdentidad || '—'}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm text-gray-500">
+                            {p.telefono || '—'}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm text-gray-700">
+                            {new Date(p.fechaPrestamo).toLocaleDateString('es-ES', {
+                              day: '2-digit', month: 'short', year: 'numeric'
+                            })}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className={`font-semibold text-sm ${vencido ? 'text-orange-600' : 'text-gray-700'}`}>
+                            {p.diasTranscurridos} día{p.diasTranscurridos !== 1 ? 's' : ''}
                           </span>
                         </TableCell>
                         <TableCell>
                           {vencido ? (
-                            <Chip label="Vencido" size="small" color="warning" icon={<AlertCircle className="w-3 h-3" />} />
+                            <Chip
+                              label="Vencido"
+                              size="small"
+                              color="warning"
+                            />
                           ) : (
-                            <Chip label="Activo" size="small" color="success" />
+                            <Chip
+                              label="Activo"
+                              size="small"
+                              color="success"
+                            />
                           )}
                         </TableCell>
                       </TableRow>

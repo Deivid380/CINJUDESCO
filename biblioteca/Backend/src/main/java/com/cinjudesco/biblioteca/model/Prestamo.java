@@ -18,19 +18,21 @@ public class Prestamo {
 
     private String tituloLibro;
 
-    @ManyToOne
-    @JoinColumn(name = "carnet_id")
-    private Carnet carnet;
-
     private LocalDate fechaPrestamo;
 
     private LocalDate fechaDevolucion;
 
-    private Boolean devuelto;
+    private boolean devuelto = false;
 
-    @PrePersist
-    public void prePersist() {
-        fechaPrestamo = LocalDate.now();
-        devuelto = false;
-    }
+    // =========================
+    // DATOS DEL CARNET
+    // =========================
+
+    private String numeroCarnet;
+
+    private String nombrePrestatario;
+
+    private String numeroIdentidad;
+
+    private String telefono;
 }

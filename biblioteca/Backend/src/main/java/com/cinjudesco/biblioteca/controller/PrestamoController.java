@@ -28,7 +28,8 @@ public class PrestamoController {
     @PostMapping
     public ResponseEntity<?> crear(@RequestBody PrestamoRequest request) {
 
-        Carnet carnet = carnetRepo.findByNumeroCarnet(request.getNumeroCarnet());
+        Carnet carnet = carnetRepo
+                .findByNumeroCarnet(request.getNumeroCarnet());
 
         if (carnet == null) {
             return ResponseEntity.badRequest()
@@ -38,8 +39,30 @@ public class PrestamoController {
         Prestamo prestamo = new Prestamo();
 
         prestamo.setIsbn(request.getIsbn());
-        prestamo.setTituloLibro(request.getTituloLibro());
-        prestamo.setCarnet(carnet);
+
+        prestamo.setTituloLibro(
+                request.getTituloLibro());
+
+        prestamo.setFechaPrestamo(
+                LocalDate.now());
+
+        prestamo.setDevuelto(false);
+
+        // =========================
+        // COPIAR DATOS DEL CARNET
+        // =========================
+
+        prestamo.setNumeroCarnet(
+                carnet.getNumeroCarnet());
+
+        prestamo.setNombrePrestatario(
+                carnet.getNombre());
+
+        prestamo.setNumeroIdentidad(
+                carnet.getNumeroIdentidad());
+
+        prestamo.setTelefono(
+                carnet.getTelefono());
 
         return ResponseEntity.ok(
                 prestamoRepo.save(prestamo));
