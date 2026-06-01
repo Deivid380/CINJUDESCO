@@ -32,7 +32,7 @@ const CLASES_DISPONIBLES = [
   'Rap jóvenes',
   'Danza niños',
   'Danza jóvenes',
-  'Hip Hop',
+  'Breaking',
   'Musica',
 ];
 
