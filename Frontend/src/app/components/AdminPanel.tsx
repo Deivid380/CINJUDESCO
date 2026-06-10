@@ -13,6 +13,7 @@ const CATEGORIAS_DISPONIBLES = [
   'Matemáticas',
   'Lenguaje',
   'Filosofía',
+  'Teatro',
   'Literatura',
   'Novelas',
   'Cuentos',
